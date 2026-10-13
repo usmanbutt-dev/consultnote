@@ -55,12 +55,14 @@ export function AudioInput({
   onBeforeReplace,
   onBusyChange,
   cloud = false,
+  compact = false,
 }: {
   onAudioReady: (file: File, path?: string) => void;
   onReset: () => void;
   onBeforeReplace?: () => boolean;
   onBusyChange?: (busy: boolean) => void;
   cloud?: boolean;
+  compact?: boolean;
 }) {
   const [mode, setMode] = useState<"record" | "upload">("record");
   const [phase, setPhase] = useState<
@@ -75,6 +77,7 @@ export function AudioInput({
   const resources = useRef<Resources>({ operation: 0 });
   const fileInput = useRef<HTMLInputElement>(null);
   const busy = phase !== "idle";
+  const compactCapture = (ready || compact) && !busy;
 
   useEffect(() => {
     onBusyChange?.(busy);
@@ -331,10 +334,10 @@ export function AudioInput({
         </fieldset>
       </div>
       <div
-        className={`capture-surface m-4 flex flex-col items-center justify-center rounded-xl border border-dashed border-teal-200/70 px-4 text-center sm:m-5 ${ready && !busy ? "py-4" : "min-h-64 py-7"}`}
+        className={`capture-surface m-4 flex flex-col items-center justify-center rounded-xl border border-dashed border-teal-200/70 px-4 text-center sm:m-5 ${compactCapture ? "py-4" : "min-h-64 py-7"}`}
       >
         <span
-          className={`microphone-ring mb-5 flex size-14 items-center justify-center rounded-full border border-teal-100 bg-white text-teal-700 ${ready && !busy ? "hidden" : ""} ${phase === "recording" ? "recording-pulse" : ""}`}
+          className={`microphone-ring mb-5 flex size-14 items-center justify-center rounded-full border border-teal-100 bg-white text-teal-700 ${compactCapture ? "hidden" : ""} ${phase === "recording" ? "recording-pulse" : ""}`}
         >
           {mode === "record" ? (
             <Mic aria-hidden="true" size={24} strokeWidth={1.7} />

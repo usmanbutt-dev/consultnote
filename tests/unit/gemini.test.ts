@@ -53,7 +53,7 @@ describe("Gemini transcription boundary", () => {
     expect(await transcribeAudio(audio)).toEqual({
       transcript: fixture,
       model: "gemini-3.8-flash",
-      promptVersion: "transcribe-v1",
+      promptVersion: "transcribe-v2",
     });
     expect(create).toHaveBeenCalledTimes(1);
     const [request, options] = create.mock.calls[0];

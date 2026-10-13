@@ -80,21 +80,21 @@ async function upload(page: Page) {
   });
   await expect(page.getByText("Audio ready", { exact: true })).toBeVisible();
 }
-test("cloud workspace sends large audio to Storage and uses JSON jobs with independent Urdu notes", async ({
+test("cloud workspace uploads large audio directly and requests English notes with automatic language detection", async ({
   page,
 }) => {
   let starts = 0;
   await page.route("**/api/transcribe/jobs", (route) => {
     starts++;
-    expect(route.request().postDataJSON().language).toBe("en-ur");
+    expect(route.request().postDataJSON().language).toBe("auto");
     expect(route.request().postData()!.length).toBeLessThan(400);
     return route.fulfill({ status: 202, json: { status: "processing" } });
   });
   await page.route("**/api/notes", (route) => {
     const input = route.request().postDataJSON();
-    expect(input.notesLanguage).toBe("ur");
+    expect(input.notesLanguage).toBe("en");
     const notes = structuredClone(rawNotes);
-    notes.sections[0].items[0].text = "مریض کے مطابق سر درد ہے۔";
+    notes.sections[0].items[0].text = "Patient reports a headache.";
     return route.fulfill({
       json: {
         notes,
@@ -104,21 +104,19 @@ test("cloud workspace sends large audio to Storage and uses JSON jobs with indep
   });
   await upload(page);
   await page
-    .getByLabel("Recording language", { exact: true })
-    .selectOption("en-ur");
-  await page
     .getByRole("button", { name: "Transcribe audio", exact: true })
     .click();
   await expect(
     page.getByLabel("Transcript segment 1", { exact: true }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Notes", exact: true }).click();
-  await page.getByLabel("Notes language", { exact: true }).selectOption("ur");
+  await expect(
+    page.getByRole("button", { name: "Generate notes", exact: true }),
+  ).toHaveCount(1);
   await page
     .getByRole("button", { name: "Generate notes", exact: true })
     .click();
   await expect(page.getByLabel("History note 1", { exact: true })).toHaveValue(
-    "مریض کے مطابق سر درد ہے۔",
+    "Patient reports a headache.",
   );
   expect(await page.evaluate(() => window.cloudUploads[0].bytes)).toBe(
     7 * 1024 * 1024,

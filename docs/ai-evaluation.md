@@ -2,6 +2,25 @@
 
 Status: The AssemblyAI/Groq workflow completed three fictional live evaluations and the user's approved five-minute MP3 on 2026-10-13. Transcript, role and note review remains necessary. Earlier Gemini investigations are retained below as historical records.
 
+## Automatic speech detection and English output — 2026-10-14
+
+New recordings use Universal-2 with automatic language detection and code switching. AssemblyAI requests English translation per utterance, with forced translation even when the detected primary language is English. Speaker IDs, turn IDs and timestamps are preserved. The workspace has no recording or notes language selector; new notes use `notes-v5` in English. Transcript and notes appear together on wide desktop, with tabs on smaller screens. This supersedes the controls described in the historical evaluation below; existing saved records are not rewritten.
+
+The user's previously approved 300.19-second English MP3 completed once through the local app, without automatic retries:
+
+| Check | Result |
+| --- | --- |
+| Transcription, English translation and role suggestions | HTTP 200 in 20.2 seconds; 32 turns and two speakers |
+| Model/provenance | `AssemblyAI:universal-2; translation:en; Groq:openai/gpt-oss-120b`; `assemblyai-v2/english-v1/roles-v1` |
+| English notes | HTTP 200 in 3.6 seconds; 15 items across five sections; schema, source-reference and digest checks passed |
+| Saved user data | Neither live request saved or replaced a consultation |
+
+Manual inspection found the heating-pad discussion and proposed Tuesday phone follow-up retained. Some wording still needs review: “Patient agreed to try yoga or tai chi classes” may be stronger than accepting help finding class options, and “confirmed appointment” is stronger than acknowledging a proposed call. Valid citations do not guarantee faithful summaries. No accuracy percentage is claimed.
+
+Controlled Urdu/mixed turn fixtures verify that English translation replaces the source text without changing speaker attribution or timing, and missing translated turns fail safely. These fixtures do not measure real Urdu recognition or translation. Representative Urdu and mixed recordings, real Supabase installation/two-account checks and hosted Vercel execution remain pending.
+
+Final verification: 162 unit tests, all 40 browser cases on the optimized production bundle, lint and TypeScript passed. Production checks used empty provider keys and an isolated QA database, including save/restart/reopen/delete. Desktop and mobile layouts were visually checked with no browser errors. The original local draft retained 35 turns, 13 notes and `notes-v3` provenance. One read-only review found an obsolete speaker-reason assertion and a duplicate desktop notes action; both were corrected. Native microphone checks explicitly grant browser permission and wait for workspace initialization; permission-denial and reset checks then passed three repetitions.
+
 ## Clinician workflow and language evaluation — 2026-10-13
 
 The current workflow uses `notes-v4`, with separate recording and note language controls. New notes use clinician chart wording such as “Discussed,” “Recommended,” and “Patient reports,” with corresponding Urdu phrasing. Existing saved notes keep their original wording and provenance until explicitly regenerated. Section keys remain compatible with old records; their displayed labels are History, Discussion, Plan, Follow-up, and Preferences and barriers.

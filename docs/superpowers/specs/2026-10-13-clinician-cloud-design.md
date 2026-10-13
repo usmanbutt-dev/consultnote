@@ -2,6 +2,8 @@
 
 Approved scope: prioritize English and Urdu, write clinician chart notes, simplify the consultation workflow, and prepare Supabase/Vercel integration. Supabase will be configured later. Keep the development branch open for testing.
 
+2026-10-14 update: the user's later request supersedes the language selectors and single-panel desktop layout below. Automatically detect speech, translate each speaker turn into English, and generate English notes only. Show transcript and notes together on wide desktop, retaining tabs on smaller screens. Existing saved text and provenance remain unchanged until explicitly regenerated.
+
 ## Clinical workflow
 
 Record or upload → review words and speaker roles → generate and review notes → save/export. Keep one primary action at each stage. Reuse the existing editable transcript, source citations, history, sample, and draft protection. Use subtle transitions and respect reduced motion.

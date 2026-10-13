@@ -24,10 +24,6 @@ export function NotesEditor({
   const [error, setError] = useState("");
   return (
     <div className="space-y-5 px-5 py-5">
-      <p className="text-xs leading-6 text-slate-500">
-        Check every note against its sources. You can correct the wording before
-        saving.
-      </p>
       {error && (
         <p role="alert" className="text-xs text-red-800">
           {error}
@@ -58,7 +54,7 @@ export function NotesEditor({
                   id={`note-${section.kind}-${index}`}
                   defaultValue={item.text}
                   dir="auto"
-                  rows={3}
+                  rows={2}
                   disabled={disabled}
                   className="w-full resize-y rounded-md border border-slate-200 bg-white p-2 text-xs leading-6 text-slate-700 disabled:opacity-60"
                   onInput={onPendingEdit}

@@ -1,29 +1,35 @@
 import { expect, test } from "@playwright/test";
 
-test("guides review through one panel and offers English/Urdu choices", async ({
+test("shows English transcript and notes side by side without language choices", async ({
   page,
 }) => {
   await page.goto("/");
-  await page
-    .getByLabel("Recording language", { exact: true })
-    .selectOption("en-ur");
   await expect(
     page.getByLabel("Recording language", { exact: true }),
-  ).toHaveValue("en-ur");
+  ).toHaveCount(0);
+  await expect(page.getByLabel("Notes language", { exact: true })).toHaveCount(
+    0,
+  );
   await page
     .getByRole("button", { name: "Load sample consultation", exact: true })
     .click();
   await expect(
     page.getByRole("list", { name: "Consultation steps" }),
   ).toContainText("Save");
-  await page.getByRole("button", { name: "Notes", exact: true }).click();
-  await page.getByLabel("Notes language", { exact: true }).selectOption("ur");
   await expect(
     page.getByRole("heading", { name: "Conversation transcript", exact: true }),
-  ).toBeHidden();
+  ).toBeVisible();
   await expect(
     page.getByLabel("History note 1", { exact: true }),
   ).toBeVisible();
+  const left = await page
+    .getByRole("region", { name: "Conversation transcript", exact: true })
+    .boundingBox();
+  const right = await page
+    .getByRole("region", { name: "Consultation notes", exact: true })
+    .boundingBox();
+  expect(right!.x).toBeGreaterThan(left!.x + left!.width);
+  expect(Math.abs(right!.y - left!.y)).toBeLessThan(2);
 });
 
 test("opens an honest empty workspace without an AI key", async ({ page }) => {

@@ -16,8 +16,20 @@ const completed = {
   speech_model_used: "universal-3-pro",
   text: "Hello. Hi.",
   utterances: [
-    { speaker: "A", start: 0, end: 1000, text: "Hello." },
-    { speaker: "B", start: 1200, end: 2000, text: "Hi." },
+    {
+      speaker: "A",
+      start: 0,
+      end: 1000,
+      text: "Hello.",
+      translated_texts: { en: "Hello." },
+    },
+    {
+      speaker: "B",
+      start: 1200,
+      end: 2000,
+      text: "Hi.",
+      translated_texts: { en: "Hi." },
+    },
   ],
 };
 beforeEach(() => vi.stubEnv("ASSEMBLYAI_API_KEY", "private-test-key"));
@@ -70,6 +82,17 @@ it("submits once and maps diarized utterances to measured seconds and stable spe
   expect(JSON.parse(fetch.mock.calls[1][1].body)).toMatchObject({
     speaker_labels: true,
     language_detection: true,
+    speech_models: ["universal-2"],
+    language_detection_options: { code_switching: true },
+    speech_understanding: {
+      request: {
+        translation: {
+          target_languages: ["en"],
+          match_original_utterance: true,
+          force_translation: true,
+        },
+      },
+    },
   });
 });
 it("polls an existing queued job without submitting another generation", async () => {
@@ -97,8 +120,8 @@ it("polls an existing queued job without submitting another generation", async (
     ),
   ).toHaveLength(1);
 });
-it.each(["ur", "en-ur"] as const)(
-  "uses the multilingual model for %s without translating source speech",
+it.each(["auto", "ur", "en-ur"] as const)(
+  "renders %s speech in English without changing speaker attribution or timing",
   async (language) => {
     const fetch = responses(
       { upload_url: "https://cdn.assemblyai.com/upload/test" },
@@ -107,7 +130,13 @@ it.each(["ur", "en-ur"] as const)(
         ...completed,
         text: "مجھے بخار ہے",
         utterances: [
-          { speaker: "A", start: 0, end: 1000, text: "مجھے بخار ہے" },
+          {
+            speaker: "A",
+            start: 0,
+            end: 1000,
+            text: "مجھے بخار ہے",
+            translated_texts: { en: "I have a fever." },
+          },
         ],
       },
     );
@@ -121,9 +150,25 @@ it.each(["ur", "en-ur"] as const)(
     if (language === "ur") expect(sent.language_code).toBe("ur");
     else
       expect(sent.language_detection_options).toEqual({ code_switching: true });
-    expect(result.transcript.segments[0].text).toBe("مجھے بخار ہے");
+    expect(result.transcript.segments[0]).toMatchObject({
+      id: "segment-1",
+      speakerId: "speaker-1",
+      startSeconds: 0,
+      endSeconds: 1,
+      text: "I have a fever.",
+    });
   },
 );
+it("rejects a completed job with missing English translation instead of displaying Urdu", async () => {
+  responses({
+    status: "completed",
+    text: "مجھے بخار ہے",
+    utterances: [{ speaker: "A", start: 0, end: 1000, text: "مجھے بخار ہے" }],
+  });
+  await expect(
+    pollAssemblyJob("job-1", 30, new AbortController().signal),
+  ).rejects.toMatchObject({ code: "INVALID_AI_OUTPUT" });
+});
 it.each([401, 403, 429, 503])(
   "maps HTTP %i without leaking credentials or provider bodies",
   async (status) => {

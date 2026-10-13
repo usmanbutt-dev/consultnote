@@ -29,7 +29,7 @@ Supabase's default email sender is restricted: it sends only to project-team add
 - Account A: upload the five-minute recording, transcribe, review roles, generate/edit notes and save. The browser should upload the file directly to Supabase Storage; `/api/audio/validate` and `/api/transcribe/jobs` receive small JSON bodies.
 - Sign out, then sign in as account B. A's history must be absent. Direct record and job requests for A's IDs must return 404. Supabase Storage must reject B reading A's private object.
 - Check the `consultations` table for owner IDs and the `transcription_jobs` table for one provider ID per submission.
-- Cancel waiting, then press transcribe again: the app resumes the same pending job. A failed or expired job needs a new recording submission. Changing the language starts a new job and can consume another provider credit.
+- Cancel waiting, then press transcribe again: the app resumes the same pending job. A failed or expired job needs a new recording submission.
 - Uploaded audio is removed after completion, explicit cancellation or terminal failure. Closing the tab can leave an abandoned private file. For this demo, remove files older than 24 hours through the Storage dashboard; do not delete only `storage.objects` metadata with SQL. Provider retention is separate from Supabase deletion.
 
 Processing limits: 10 transcription starts and 20 notes requests per account per database day, plus 100 operations per day across the demo. Only one recent transcription job can run per account. A pending job expires after 15 minutes; polling uses its existing provider ID. These limits bound app usage and do not replace provider rate limits. Groq quota errors are surfaced without automatic regeneration.
@@ -49,9 +49,9 @@ Vercel Hobby suits this personal interview project; its [usage terms](https://ve
 
 ## English and Urdu
 
-Choose **English**, **Urdu**, **English + Urdu**, or automatic detection before transcription. Urdu and mixed speech use Universal-2; mixed speech enables its [code-switching option](https://www.assemblyai.com/docs/pre-recorded-audio/code-switching). Source words remain in the spoken language. Notes independently offer English, Urdu, or the conversation language.
+Recording language is detected automatically. English, Urdu and mixed speech use Universal-2 with its [code-switching option](https://www.assemblyai.com/docs/pre-recorded-audio/code-switching). AssemblyAI's [translation](https://www.assemblyai.com/docs/speech-understanding/translation) returns English for each speaker turn while preserving its timestamps. New transcripts, role explanations and notes are written in English; no language selectors are shown. Existing saved text remains unchanged until explicitly regenerated.
 
-English recording transcription and live English/Urdu note generation have been checked. Actual Urdu speech recognition and speaker separation remain unverified until a representative Urdu recording is supplied. Always review words, speaker roles, medical names, numbers and translated notes before saving.
+The approved English MP3 completed transcription with English translation and English notes on 2026-10-14. Actual Urdu and mixed speech recognition, translation and speaker separation remain unverified until representative recordings are available. Translation uses AssemblyAI trial credits. Review words, speaker roles, medical names, numbers and translated notes before saving.
 
 ## Configuration troubleshooting
 

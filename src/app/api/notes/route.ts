@@ -21,11 +21,7 @@ export async function POST(request: Request): Promise<Response> {
       );
     if (owner) await reserveProcessing(owner.userId, "notes");
     return Response.json(
-      await generateNotes(
-        parsed.data.transcript,
-        parsed.data.assignments,
-        parsed.data.notesLanguage,
-      ),
+      await generateNotes(parsed.data.transcript, parsed.data.assignments),
     );
   } catch (error) {
     return errorResponse(error);

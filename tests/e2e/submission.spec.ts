@@ -5,6 +5,7 @@ import { sourceDigest } from "../../src/lib/evidence";
 import { transcriptSchema } from "../../src/lib/consultation";
 import rawTranscript from "../fixtures/transcript.json" with { type: "json" };
 import notes from "../fixtures/notes.json" with { type: "json" };
+test.use({ viewport: { width: 1100, height: 1000 } });
 const transcript = transcriptSchema.parse(rawTranscript);
 const audio = fileURLToPath(
   new URL("../fixtures/audio/tone.wav", import.meta.url),

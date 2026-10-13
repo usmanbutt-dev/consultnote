@@ -1,5 +1,12 @@
 # Implementation decisions and tradeoffs
 
+## English output and paired review — 2026-10-14
+
+- Automatically detect English, Urdu and mixed speech using Universal-2 with code switching. Request AssemblyAI's per-utterance English translation, including forced translation when English is the detected primary language. Preserve speaker IDs, turn IDs and timestamps; reject a completed response missing an English turn instead of displaying untranslated text.
+- New transcripts and notes are English only. Notes use `notes-v5`; the Gemini alternative uses `transcribe-v2`. Existing saved records retain their original wording and provenance. This supersedes the earlier language-selector decisions below.
+- Display transcript and notes together at the wide-desktop breakpoint, with tabs on smaller screens. Remove repeated instructions and role explanations while retaining role correction, editing, evidence links and draft protection. Keep one visible Generate notes action per layout.
+- The approved English MP3 passed the live translation/notes path. Controlled Urdu turn fixtures verify mapping, but real Urdu/mixed recognition and translation quality remain unverified. Supabase configuration and hosted checks remain deferred; no finishing workflow, merge, push or deployment was performed.
+
 These decisions were recorded during the six approved milestones. Early milestone scope limits were superseded as the user approved further work. The repository stays local on `feat/submission-workflow`; no remote or deployment was requested.
 - Use a feature branch in the requested checkout rather than relocating the project — keeps the approved folder usable; no worktree was requested. Cost if wrong: weaker filesystem isolation; the planning baseline remains recoverable in Git.
 

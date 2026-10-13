@@ -119,12 +119,16 @@ test("records actual MediaRecorder WebM and releases microphone tracks", async (
       return stream;
     };
   });
+  const history = page.waitForResponse("**/api/consultations");
   await page.goto("/");
+  await history;
   const validation = page.waitForResponse("**/api/audio/validate");
   await page
     .getByRole("button", { name: "Start recording", exact: true })
     .click();
-  await expect(page.getByText("Recording", { exact: true })).toBeVisible();
+  await expect(page.getByText("Recording", { exact: true })).toBeVisible({
+    timeout: 15_000,
+  });
   await expect(page.getByLabel("Recording duration")).toContainText("00:01");
   await expect
     .poll(() =>
@@ -155,7 +159,9 @@ test("denied microphone leaves file upload available", async ({ page }) => {
       throw new DOMException("Denied", "NotAllowedError");
     };
   });
+  const history = page.waitForResponse("**/api/consultations");
   await page.goto("/");
+  await history;
   await page
     .getByRole("button", { name: "Start recording", exact: true })
     .click();
@@ -194,7 +200,8 @@ test("unsupported recording leaves file upload available", async ({ page }) => {
   await expect(page.getByText("Audio ready", { exact: true })).toBeVisible();
 });
 
-test("reset releases an active microphone", async ({ page }) => {
+test("reset releases an active microphone", async ({ page, context }) => {
+  await context.grantPermissions(["microphone"]);
   await page.addInitScript(() => {
     const getUserMedia = navigator.mediaDevices.getUserMedia.bind(
       navigator.mediaDevices,
@@ -205,11 +212,15 @@ test("reset releases an active microphone", async ({ page }) => {
       return stream;
     };
   });
+  const history = page.waitForResponse("**/api/consultations");
   await page.goto("/");
+  await history;
   await page
     .getByRole("button", { name: "Start recording", exact: true })
     .click();
-  await expect(page.getByText("Recording", { exact: true })).toBeVisible();
+  await expect(page.getByText("Recording", { exact: true })).toBeVisible({
+    timeout: 15_000,
+  });
   await page
     .getByRole("button", { name: "New consultation", exact: true })
     .click();

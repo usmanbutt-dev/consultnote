@@ -32,11 +32,7 @@ import {
 import type { TranscriptionResult } from "@/lib/gemini";
 import { toMarkdown } from "@/lib/markdown";
 import { NOTES_PROMPT_VERSION } from "@/lib/prompts";
-import {
-  notesLanguageSchema,
-  type AudioLanguage,
-  type NotesLanguage,
-} from "@/lib/languages";
+import { type AudioLanguage, type NotesLanguage } from "@/lib/languages";
 import { removeCloudAudio, uploadCloudAudio } from "@/lib/cloud-client";
 
 async function apiRequest(url: string, init?: RequestInit): Promise<unknown> {
@@ -93,8 +89,8 @@ export function ConsultationWorkspace({
     language: AudioLanguage;
     submission?: Promise<unknown>;
   } | null>(null);
-  const [audioLanguage, setAudioLanguage] = useState<AudioLanguage>("auto");
-  const [notesLanguage, setNotesLanguage] = useState<NotesLanguage>("en");
+  const audioLanguage: AudioLanguage = "auto";
+  const notesLanguage: NotesLanguage = "en";
   const [inputVersion, setInputVersion] = useState(0);
   const [panel, setPanel] = useState<"transcript" | "notes">("transcript");
   const [audioBusy, setAudioBusy] = useState(false);
@@ -310,13 +306,6 @@ export function ConsultationWorkspace({
   ): Promise<unknown> {
     let job = cloudJob.current;
     let path = audioPath;
-    if (job && job.language !== audioLanguage) {
-      await Promise.resolve(job.submission).catch(() => {});
-      await fetch(`/api/transcribe/jobs/${job.id}`, { method: "DELETE" });
-      signal.throwIfAborted();
-      cloudJob.current = job = null;
-      path = undefined;
-    }
     if (!job) {
       if (!path) path = (await uploadCloudAudio(file, signal)).path;
       signal.throwIfAborted();
@@ -539,10 +528,6 @@ export function ConsultationWorkspace({
       model: input.model,
       promptVersion: input.promptVersion,
     });
-    const savedLanguage = notesLanguageSchema.safeParse(
-      input.promptVersion.split(" | notes:")[1]?.split("/")[1],
-    );
-    setNotesLanguage(savedLanguage.success ? savedLanguage.data : "en");
     setTitle(input.title);
     setSavedRecord(record);
     setDirty(!record);
@@ -779,7 +764,7 @@ export function ConsultationWorkspace({
         <main
           id="workspace"
           tabIndex={-1}
-          className="mx-auto max-w-4xl px-5 py-7 sm:px-9 sm:py-9"
+          className="mx-auto max-w-7xl px-5 py-7 sm:px-9 sm:py-9"
         >
           <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
             <div>
@@ -927,25 +912,9 @@ export function ConsultationWorkspace({
             )}
           </ol>
 
-          <div className="mb-3 flex items-center gap-3 text-xs text-slate-600">
-            <label htmlFor="recording-language">Recording language</label>
-            <select
-              id="recording-language"
-              value={audioLanguage}
-              disabled={busy}
-              onChange={(event) =>
-                setAudioLanguage(event.target.value as AudioLanguage)
-              }
-              className="min-h-11 rounded-lg border border-slate-200 bg-white px-3"
-            >
-              <option value="auto">Detect automatically</option>
-              <option value="en">English</option>
-              <option value="ur">Urdu</option>
-              <option value="en-ur">English + Urdu</option>
-            </select>
-          </div>
           <AudioInput
             cloud={configuration.cloud}
+            compact={Boolean(transcription)}
             key={inputVersion}
             onAudioReady={acceptAudio}
             onReset={() => {
@@ -961,7 +930,7 @@ export function ConsultationWorkspace({
           <div
             role="group"
             aria-label="Workspace panels"
-            className="mt-6 flex gap-1 rounded-lg border border-slate-200 bg-white p-1"
+            className="mt-6 flex gap-1 rounded-lg border border-slate-200 bg-white p-1 xl:hidden"
           >
             <button
               aria-pressed={panel === "transcript"}
@@ -978,10 +947,10 @@ export function ConsultationWorkspace({
               Notes
             </button>
           </div>
-          <div className="mt-4 grid gap-5">
+          <div className="mt-4 grid items-start gap-5 xl:grid-cols-2">
             <section
               aria-labelledby="transcript-heading"
-              className={`soft-panel animate-enter min-h-72 flex-col ${panel === "transcript" ? "flex" : "hidden"}`}
+              className={`soft-panel animate-enter min-h-72 min-w-0 flex-col xl:flex ${panel === "transcript" ? "flex" : "hidden"}`}
             >
               <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-4">
                 <MessageSquareText
@@ -1043,9 +1012,7 @@ export function ConsultationWorkspace({
                       ? "Transcribing your audio…"
                       : transcription
                         ? "Transcript ready for review."
-                        : configuration.provider === "assemblyai"
-                          ? "Audio is sent to AssemblyAI; transcript text is sent to Groq."
-                          : "Audio is sent to Gemini when you transcribe."}
+                        : "Your recording is processed online into English."}
                   </p>
                 </div>
                 {transcriptionError && (
@@ -1085,7 +1052,7 @@ export function ConsultationWorkspace({
                   </p>
                 </div>
               )}
-              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-5 py-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-5 py-4 xl:hidden">
                 <p className="text-xs text-slate-500">
                   Review the words and confirm who is speaking.
                 </p>
@@ -1104,7 +1071,7 @@ export function ConsultationWorkspace({
             </section>
             <section
               aria-labelledby="notes-heading"
-              className={`soft-panel animate-enter min-h-72 flex-col ${panel === "notes" ? "flex" : "hidden"}`}
+              className={`soft-panel animate-enter min-h-72 min-w-0 flex-col xl:flex ${panel === "notes" ? "flex" : "hidden"}`}
             >
               <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-4">
                 <FileText
@@ -1120,22 +1087,6 @@ export function ConsultationWorkspace({
                 </span>
               </div>
               <div className="border-b border-slate-100 px-5 py-4">
-                <div className="mb-3 flex items-center gap-3 text-xs text-slate-600">
-                  <label htmlFor="notes-language">Notes language</label>
-                  <select
-                    id="notes-language"
-                    value={notesLanguage}
-                    disabled={busy}
-                    onChange={(event) =>
-                      setNotesLanguage(event.target.value as NotesLanguage)
-                    }
-                    className="min-h-11 rounded-lg border border-slate-200 bg-white px-3"
-                  >
-                    <option value="en">English</option>
-                    <option value="ur">Urdu</option>
-                    <option value="original">Conversation language</option>
-                  </select>
-                </div>
                 <div className="flex flex-wrap items-center gap-3">
                   <button
                     onClick={() => void createNotes()}
@@ -1156,11 +1107,6 @@ export function ConsultationWorkspace({
                       Cancel notes
                     </button>
                   )}
-                  <p role="status" className="text-[11px] text-slate-500">
-                    {generatingNotes
-                      ? "Creating notes from the reviewed transcript…"
-                      : "Review the transcript and speaker roles first."}
-                  </p>
                 </div>
                 {!configuration.notesConfigured && (
                   <p className="mt-3 text-xs leading-6 text-amber-900">
@@ -1208,9 +1154,6 @@ export function ConsultationWorkspace({
                   </p>
                 </div>
               )}
-              <p className="border-t border-slate-100 px-5 py-3 text-[10px] text-slate-500">
-                Review and edit the notes before saving.
-              </p>
             </section>
           </div>
           <p className="mt-6 flex items-start justify-center gap-2 text-[11px] leading-5 text-slate-500">

@@ -15,6 +15,7 @@ const utteranceSchema = z.object({
   start: z.number().nonnegative(),
   end: z.number().nonnegative(),
   text: z.string().trim().min(1),
+  translated_texts: z.object({ en: z.string().trim().min(1) }).optional(),
 });
 const resultSchema = z.object({
   status: z.string(),
@@ -76,16 +77,25 @@ export async function submitAssemblyJob(
       body: JSON.stringify({
         audio_url: url,
         speech_models:
-          language === "ur" || language === "en-ur"
+          language !== "en"
             ? ["universal-2"]
             : ["universal-3-pro", "universal-2"],
         speaker_labels: true,
         ...(language === "auto" || language === "en-ur"
           ? { language_detection: true }
           : { language_code: language }),
-        ...(language === "en-ur"
+        ...(language === "auto" || language === "en-ur"
           ? { language_detection_options: { code_switching: true } }
           : {}),
+        speech_understanding: {
+          request: {
+            translation: {
+              target_languages: ["en"],
+              match_original_utterance: true,
+              force_translation: true,
+            },
+          },
+        },
       }),
     }),
   );
@@ -121,6 +131,12 @@ export async function pollAssemblyJob(
       422,
     );
   if (!data.utterances?.length) throw invalidProviderOutput("AssemblyAI");
+  if (data.utterances.some((u) => !u.translated_texts?.en))
+    throw new ApiError(
+      "INVALID_AI_OUTPUT",
+      "The English transcript could not be prepared. Keep the recording and retry.",
+      502,
+    );
   const labels = [
     ...new Set(data.utterances.map((u) => u.speaker ?? "unknown")),
   ];
@@ -139,12 +155,12 @@ export async function pollAssemblyJob(
       speakerId: `speaker-${labels.indexOf(u.speaker ?? "unknown") + 1}`,
       startSeconds: u.start / 1000,
       endSeconds: u.end / 1000,
-      text: u.text,
+      text: u.translated_texts!.en,
     })),
   });
   if (!transcript.success) throw invalidProviderOutput("AssemblyAI");
   return {
     transcript: transcript.data,
-    model: `AssemblyAI:${data.speech_model_used ?? "universal-3-pro/universal-2"}`,
+    model: `AssemblyAI:${data.speech_model_used ?? "universal-2"}; translation:en`,
   };
 }

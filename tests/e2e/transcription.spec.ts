@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { fileURLToPath } from "node:url";
 import fixture from "../fixtures/transcript.json" with { type: "json" };
+test.use({ viewport: { width: 1100, height: 1000 } });
 
 const audio = fileURLToPath(
   new URL("../fixtures/audio/tone.wav", import.meta.url),
@@ -46,11 +47,8 @@ test("shows an editable transcript, approximate timestamps and suggested roles",
     page.getByLabel("Transcript segment 1", { exact: true }),
   ).toHaveValue(fixture.segments[0].text);
   await expect(
-    page.getByText("Timestamps are approximate.", { exact: false }),
-  ).toBeVisible();
-  await expect(
     page.getByText(fixture.speakers[0].reason, { exact: true }),
-  ).toBeVisible();
+  ).toHaveCount(0);
   await expect(page.getByLabel("Speaker 3 role", { exact: true })).toHaveValue(
     "unknown",
   );
