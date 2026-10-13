@@ -1,5 +1,11 @@
 # AI evaluation and interview demonstration
 
+## Guided workflow verification — 2026-10-14
+
+The client now runs transcription followed by notes from one **Create notes** action. Provider adapters, prompts and provenance formats are unchanged in this UI pass. New browser coverage checks the combined result, notes-only retry after a notes failure, and cancellation after transcription completes. Existing coverage was adapted to preserve focused edits, source navigation, save/reopen/download, regeneration failure, recording replacement and cloud job retry behavior. These checks use controlled provider responses and make no live AI calls.
+
+Final verification passed 173 unit tests and all 44 browser tests against the production build with empty provider keys and an isolated database, including the actionable missing-key error. Lint, type checks and the optimized build passed. A production restart retained the saved test record; deletion then returned 404. Desktop/mobile sample previews reported no browser errors. The original local consultation remains unchanged with 35 transcript turns and 13 notes; one saved consultation remains. No new live provider call, merge, push or deployment was performed.
+
 ## Concise notes and spoken names — 2026-10-14
 
 Reused the explicitly approved trimmed cost-of-care MP3 with AssemblyAI and Groq. The 300.19-second recording returned 32 turns and two speakers in 21.8 seconds. The role request identified Mr. Jones and Dr. Smith from clear forms of address; those passages were manually checked. Controlled tests also cover rejecting a doctor's self-introduction assigned to the patient and a name mentioned about a third party. A concern suggestion was accurate but wordy; the prompt now prefers a short symptom phrase found in the transcript. Title wording remains editable.

@@ -1,5 +1,13 @@
 # Implementation decisions and tradeoffs
 
+## Guided creation and review — 2026-10-14
+
+The default view shows recording and upload actions, with a small sample link. Audio-ready capture collapses to the player and replacement controls. A single **Create notes** action runs the existing transcription and notes calls sequentially, passing the returned transcript and suggested assignments directly into note generation. A request-generation guard prevents duplicate flow starts and skips continuation after cancellation or navigation. Failed notes retain the completed transcript; retry runs only note generation.
+
+Working states expose a spinner, a plain stage message and Cancel, without a synthetic progress percentage. Notes are the default result view. **View conversation** optionally reveals a desktop panel or mobile view; **See in conversation** reveals and focuses a cited passage. Transcript and role edits retain the existing stale-notes confirmation and digest checks. Cancelling or failing regeneration preserves existing notes, edits and provenance.
+
+Titles appear after processing, and Save/Download appear only once notes exist. Download retains the existing requirement to save current changes first and produces Markdown. Empty panels, the step bar, marketing copy, preview badges and history counts were removed. Body text is 16px, helper text 14px, and disabled controls use neutral colors. Existing short transitions and reduced-motion support are retained. The sample remains explicitly labeled; saved/sample conversations do not show empty capture controls when opened.
+
 ## Document layout and spoken names — 2026-10-14
 
 Each notes section uses a shared box with editable bullet points. The notes prompt asks for concise clinical documentation, removes repeated patient prefixes where the subject is clear, and retains explicit attribution where necessary. Evidence remains part of the stored contract and export; the UI hides passage links under an optional **Check in transcript** disclosure.

@@ -3,14 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import {
   AudioLines,
-  ChevronRight,
   FileText,
   HelpCircle,
-  Laptop,
   MessageSquareText,
   Plus,
   Save,
-  ShieldCheck,
+  LoaderCircle,
 } from "lucide-react";
 import { AudioInput } from "./audio-input";
 import { TranscriptReview } from "./transcript-review";
@@ -93,7 +91,9 @@ export function ConsultationWorkspace({
   const audioLanguage: AudioLanguage = "auto";
   const notesLanguage: NotesLanguage = "en";
   const [inputVersion, setInputVersion] = useState(0);
-  const [panel, setPanel] = useState<"transcript" | "notes">("transcript");
+  const [panel, setPanel] = useState<"transcript" | "notes">("notes");
+  const [showConversation, setShowConversation] = useState(false);
+  const creation = useRef({ generation: 0, busy: false });
   const [audioBusy, setAudioBusy] = useState(false);
   const [transcription, setTranscription] =
     useState<TranscriptionResult | null>(null);
@@ -125,6 +125,7 @@ export function ConsultationWorkspace({
   }>({ generation: 0 });
   const navigation = useRef(0);
   const busy = transcribing || generatingNotes || saving || audioBusy;
+  const working = transcribing || generatingNotes;
   const sample = Boolean(transcription?.promptVersion.startsWith("sample-v1"));
 
   useEffect(() => {
@@ -199,6 +200,13 @@ export function ConsultationWorkspace({
         .catch(() => {});
   }
 
+  function cancelCreation() {
+    creation.current.generation++;
+    creation.current.busy = false;
+    cancelTranscription();
+    cancelNotes();
+  }
+
   function beforeReplace() {
     if (saving) return false;
     if (
@@ -209,8 +217,7 @@ export function ConsultationWorkspace({
       )
     )
       return false;
-    cancelTranscription();
-    cancelNotes();
+    cancelCreation();
     navigation.current++;
     return true;
   }
@@ -226,6 +233,8 @@ export function ConsultationWorkspace({
     setDirty(false);
     setStorageError("");
     setTitle("Untitled consultation");
+    setShowConversation(false);
+    setPanel("notes");
   }
 
   function acceptAudio(file: File, path?: string) {
@@ -236,22 +245,21 @@ export function ConsultationWorkspace({
     clearTranscript();
   }
 
-  async function transcribe() {
+  async function transcribe(): Promise<TranscriptionResult | null> {
     const active = request.current;
-    if (!audio || active.busy || audioBusy) return;
+    if (!audio || active.busy || audioBusy) return null;
     if (
       transcription &&
       !window.confirm(
         "Transcribe again? A successful result will replace your transcript and role edits.",
       )
     )
-      return;
+      return null;
     const generation = ++active.generation;
     active.controller = new AbortController();
     active.busy = true;
     setTranscribing(true);
     setTranscriptionError("");
-    setPanel("transcript");
     const body = new FormData();
     body.append("audio", audio);
     try {
@@ -263,7 +271,7 @@ export function ConsultationWorkspace({
             body,
             signal: active.controller.signal,
           });
-      if (generation !== active.generation) return;
+      if (generation !== active.generation) return null;
       const parsed = z
         .object({
           transcript: transcriptSchema,
@@ -274,11 +282,12 @@ export function ConsultationWorkspace({
       if (!parsed.success) {
         throw new Error("The transcript could not be read. Please retry.");
       }
-      setTranscription({
+      const next = {
         transcript: parsed.data.transcript,
         model: parsed.data.model,
         promptVersion: parsed.data.promptVersion,
-      });
+      };
+      setTranscription(next);
       const nextAssignments = parsed.data.transcript.speakers.map(
         (speaker) => ({
           speakerId: speaker.id,
@@ -292,18 +301,40 @@ export function ConsultationWorkspace({
       setNotesProvenance(null);
       setSavedRecord(null);
       setDirty(true);
+      return next;
     } catch (error) {
-      if (generation !== active.generation) return;
+      if (generation !== active.generation) return null;
       setTranscriptionError(
         error instanceof Error && error.message !== "Failed to fetch"
           ? error.message
           : "Could not reach the app. Check your connection and retry.",
       );
+      return null;
     } finally {
       if (generation === active.generation) {
         active.busy = false;
         setTranscribing(false);
       }
+    }
+  }
+
+  async function createConsultationNotes() {
+    const active = creation.current;
+    if (busy || active.busy) return;
+    const generation = ++active.generation;
+    active.busy = true;
+    try {
+      const source = transcription ?? (await transcribe());
+      if (!source || generation !== active.generation) return;
+      const roles = transcription
+        ? assignments
+        : source.transcript.speakers.map((speaker) => ({
+            speakerId: speaker.id,
+            role: speaker.suggestedRole,
+          }));
+      await createNotes(source, roles);
+    } finally {
+      if (generation === active.generation) active.busy = false;
     }
   }
 
@@ -433,8 +464,8 @@ export function ConsultationWorkspace({
       if (transcription) updateAutomaticTitle(transcription.transcript, next);
     }
   }
-  async function createNotes() {
-    if (!transcription || busy) return;
+  async function createNotes(source = transcription, roles = assignments) {
+    if (!source || busy) return;
     if (
       notesResult &&
       !window.confirm(
@@ -453,8 +484,8 @@ export function ConsultationWorkspace({
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          transcript: transcription.transcript,
-          assignments,
+          transcript: source.transcript,
+          assignments: roles,
           notesLanguage,
         }),
         signal: controller.signal,
@@ -464,12 +495,12 @@ export function ConsultationWorkspace({
       if (!parsed.success)
         throw new Error("The notes could not be read. Please retry.");
       const checked = consultationInputSchema.safeParse({
-        title,
-        transcript: transcription.transcript,
-        assignments,
+        title: title.trim() || "Untitled consultation",
+        transcript: source.transcript,
+        assignments: roles,
         notesResult: parsed.data,
-        model: transcription.model,
-        promptVersion: transcription.promptVersion,
+        model: source.model,
+        promptVersion: source.promptVersion,
       });
       if (!checked.success)
         throw new Error(
@@ -477,8 +508,8 @@ export function ConsultationWorkspace({
         );
       setNotesResult(parsed.data);
       setNotesProvenance({
-        model: `${transcription.model} | notes:Groq:${configuration.notesModel}`,
-        promptVersion: `${transcription.promptVersion} | notes:${NOTES_PROMPT_VERSION}/${notesLanguage}`,
+        model: `${source.model} | notes:Groq:${configuration.notesModel}`,
+        promptVersion: `${source.promptVersion} | notes:${NOTES_PROMPT_VERSION}/${notesLanguage}`,
       });
       setDirty(true);
     } catch (error) {
@@ -564,6 +595,7 @@ export function ConsultationWorkspace({
     setSavedRecord(record);
     setDirty(!record);
     setPanel("notes");
+    setShowConversation(false);
     setStorageError("");
   }
   async function openConsultation(id: string) {
@@ -657,6 +689,7 @@ export function ConsultationWorkspace({
     setTimeout(() => URL.revokeObjectURL(url), 0);
   }
   function focusSource(id: string) {
+    setShowConversation(true);
     setPanel("transcript");
     requestAnimationFrame(() => {
       const element = document.getElementById(`text-${id}`);
@@ -680,44 +713,29 @@ export function ConsultationWorkspace({
     <div className="min-h-screen lg:flex">
       <a
         href="#workspace"
-        className="absolute -top-20 left-4 z-50 rounded-lg bg-white px-4 py-3 text-sm font-semibold shadow-lg focus:top-4"
+        className="absolute -top-20 left-4 z-50 rounded-lg bg-white px-4 py-3 font-semibold shadow-lg focus:top-4"
       >
         Skip to workspace
       </a>
-
-      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-slate-200/80 bg-white px-5 py-7 lg:flex">
+      <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-slate-200 bg-white px-5 py-7 lg:flex">
         <a
           href="#workspace"
           aria-label="ConsultNote home"
-          className="flex items-center gap-3 px-2"
+          className="flex items-center gap-3 px-2 text-xl font-semibold"
         >
           <span className="flex size-10 items-center justify-center rounded-xl bg-teal-700 text-white">
             <AudioLines aria-hidden="true" size={23} />
           </span>
-          <span className="text-[21px] font-semibold tracking-[-0.7px]">
-            Consult<span className="text-teal-700">Note</span>
-          </span>
+          ConsultNote
         </a>
-        <p className="mt-9 px-3 text-[10px] font-semibold tracking-[1.8px] text-slate-500">
-          YOUR WORKSPACE
-        </p>
-        <nav aria-label="Main navigation" className="mt-3">
-          <a
-            href="#workspace"
-            aria-current="page"
-            className="flex items-center gap-3 rounded-lg bg-teal-50 px-3 py-3 text-[13px] font-semibold text-teal-800"
-          >
-            <MessageSquareText aria-hidden="true" size={18} /> Consultations
-          </a>
-        </nav>
         <button
           onClick={newConsultation}
           disabled={saving}
-          className="mt-4 flex min-h-11 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white text-[13px] font-semibold transition-colors hover:border-teal-300 hover:bg-teal-50"
+          className="mt-8 flex min-h-11 items-center justify-center gap-2 rounded-lg border border-slate-300 text-sm font-semibold hover:bg-slate-50 disabled:opacity-50"
         >
           <Plus aria-hidden="true" size={17} /> New consultation
         </button>
-        <div className="mt-9 px-1">
+        <div className="mt-8">
           <ConsultationHistory
             items={history}
             activeId={savedRecord?.id}
@@ -726,169 +744,69 @@ export function ConsultationWorkspace({
             onDelete={(id) => void removeConsultation(id)}
           />
         </div>
-        <details className="mt-6 px-2 text-xs text-slate-600">
-          <summary className="flex min-h-11 items-center gap-2 font-medium">
-            <HelpCircle aria-hidden="true" size={16} /> How it works
-          </summary>
-          <p className="pb-3 pl-6 leading-6">
-            Capture audio, review the transcript and speakers, then create and
-            save your notes.
-          </p>
-        </details>
-        <div className="mt-auto flex items-center gap-3 border-t border-slate-100 px-2 pt-5">
-          <span className="flex size-9 items-center justify-center rounded-lg bg-slate-100">
-            <Laptop aria-hidden="true" size={17} className="text-slate-500" />
-          </span>
-          <div>
-            <p className="text-xs font-semibold">Personal workspace</p>
-            <p className="mt-1 text-[11px] text-slate-500">
-              {configuration.cloud ? "Cloud workspace" : "Local preview"}
-            </p>
-          </div>
-        </div>
       </aside>
-
       <div className="min-w-0 flex-1">
-        <header className="flex h-18 items-center justify-between gap-3 border-b border-slate-200/80 bg-white/80 px-5 sm:px-9">
-          <div className="flex items-center gap-2 text-xs text-slate-500">
+        <header className="flex h-16 items-center justify-between border-b border-slate-200 bg-white px-5 sm:px-8 lg:justify-end">
+          <a
+            href="#workspace"
+            className="flex items-center gap-2 font-semibold lg:hidden"
+          >
             <AudioLines
               aria-hidden="true"
-              size={21}
-              className="mr-1 text-teal-700 lg:hidden"
-            />
-            <span className="hidden sm:inline">Consultations</span>
-            <ChevronRight
-              aria-hidden="true"
-              size={13}
-              className="hidden sm:block"
-            />
-            <span className="font-medium text-slate-700">New consultation</span>
-          </div>
-          {configuration.cloud && (
-            <button
-              onClick={async () => {
-                if (
-                  dirty &&
-                  !window.confirm(
-                    "Sign out? Unsaved changes will be discarded.",
+              size={22}
+              className="text-teal-700"
+            />{" "}
+            ConsultNote
+          </a>
+          <div className="flex items-center gap-3">
+            <details className="relative text-sm text-slate-700">
+              <summary
+                aria-label="Help"
+                className="flex size-11 items-center justify-center rounded-lg hover:bg-slate-100"
+              >
+                <HelpCircle aria-hidden="true" size={21} />
+              </summary>
+              <p className="absolute right-0 z-20 mt-2 w-64 rounded-xl border border-slate-200 bg-white p-4 leading-6 shadow-lg">
+                Record or upload a conversation, create notes, then review and
+                save. Use fictional conversations for this demo.
+              </p>
+            </details>
+            {configuration.cloud && (
+              <button
+                onClick={async () => {
+                  if (
+                    dirty &&
+                    !window.confirm(
+                      "Sign out? Unsaved changes will be discarded.",
+                    )
                   )
-                )
-                  return;
-                try {
-                  await apiRequest("/api/auth/signout", { method: "POST" });
-                  setDirty(false);
-                  window.location.assign("/login");
-                } catch {
-                  setStorageError("Sign-out failed. Please try again.");
-                }
-              }}
-              disabled={busy}
-              className="min-h-11 px-3 text-xs font-semibold text-slate-600"
-            >
-              Sign out
-            </button>
-          )}
-          <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-[10px] font-semibold text-amber-900">
-            Interview demo
-          </span>
+                    return;
+                  try {
+                    await apiRequest("/api/auth/signout", { method: "POST" });
+                    setDirty(false);
+                    window.location.assign("/login");
+                  } catch {
+                    setStorageError("Sign-out failed. Please try again.");
+                  }
+                }}
+                disabled={busy}
+                className="min-h-11 px-3 text-sm font-semibold text-slate-700 disabled:opacity-50"
+              >
+                Sign out
+              </button>
+            )}
+          </div>
         </header>
-
         <main
           id="workspace"
           tabIndex={-1}
-          className="mx-auto max-w-7xl px-5 py-7 sm:px-9 sm:py-9"
+          className={
+            "mx-auto px-5 py-8 sm:px-8 sm:py-10 " +
+            (transcription ? "max-w-7xl" : "max-w-3xl")
+          }
         >
-          <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
-            <div>
-              <p className="text-[10px] font-semibold tracking-[1.8px] text-teal-700">
-                CONSULTATION WORKSPACE
-              </p>
-              <h1 className="mt-2 text-[30px] font-semibold tracking-[-1.1px] sm:text-[34px]">
-                New consultation
-              </h1>
-              <p className="mt-2 max-w-lg text-[13px] leading-6 text-slate-500">
-                Turn a conversation into a clear, reviewable record.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => void save()}
-                disabled={
-                  !transcription ||
-                  !notesResult ||
-                  !title.trim() ||
-                  busy ||
-                  !dirty
-                }
-                className="flex min-h-11 w-fit items-center gap-2 rounded-lg bg-teal-700 px-4 text-xs font-semibold text-white disabled:opacity-50"
-              >
-                <Save aria-hidden="true" size={16} />{" "}
-                {saving ? "Saving…" : "Save consultation"}
-              </button>
-              <button
-                onClick={exportMarkdown}
-                disabled={!savedRecord || dirty || busy}
-                className="min-h-11 rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 disabled:opacity-50"
-              >
-                Export Markdown
-              </button>
-            </div>
-          </div>
-
-          <div className="mt-5 flex flex-wrap items-end gap-3">
-            <div className="min-w-0 flex-1">
-              <label
-                htmlFor="consultation-title"
-                className="mb-2 block text-xs font-semibold text-slate-600"
-              >
-                Consultation title
-              </label>
-              <input
-                id="consultation-title"
-                value={title}
-                maxLength={120}
-                disabled={busy}
-                onChange={(event) => {
-                  titleEdited.current = true;
-                  setTitle(event.currentTarget.value);
-                  setDirty(true);
-                }}
-                className="min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-800 disabled:opacity-60"
-              />
-            </div>
-            <button
-              onClick={() => void loadSample()}
-              disabled={busy}
-              className="min-h-11 rounded-lg border border-teal-200 bg-teal-50 px-3 text-xs font-semibold text-teal-800 disabled:opacity-50"
-            >
-              Load sample consultation
-            </button>
-          </div>
-          <p role="status" className="mt-2 text-[11px] text-slate-500">
-            {savedRecord && !dirty
-              ? "All changes saved."
-              : dirty
-                ? "Unsaved changes. Review the notes before saving."
-                : "Record or upload audio, or explore the prepared sample."}
-          </p>
-          {storageError && (
-            <p
-              role="alert"
-              className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs leading-6 text-red-800"
-            >
-              {storageError}
-            </p>
-          )}
-          {sample && (
-            <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900">
-              <p className="font-semibold">Prepared fictional sample</p>
-              <p className="mt-1 leading-6">
-                This uses an example transcript; no new audio was transcribed.
-              </p>
-            </div>
-          )}
-          <details className="mt-4 rounded-lg border border-slate-200 bg-white p-4 lg:hidden">
-            <summary className="min-h-9 text-xs font-semibold text-slate-700">
+          <details className="mb-6 rounded-lg border border-slate-200 bg-white p-3 lg:hidden">
+            <summary className="min-h-9 text-sm font-semibold">
               Saved consultations
             </summary>
             <ConsultationHistory
@@ -902,302 +820,325 @@ export function ConsultationWorkspace({
             <button
               onClick={newConsultation}
               disabled={saving}
-              className="mt-3 min-h-11 rounded-md border border-slate-200 px-3 text-xs font-semibold"
+              className="mt-3 min-h-11 rounded-lg border border-slate-300 px-3 text-sm font-semibold"
             >
               New consultation
             </button>
           </details>
-
-          <ol
-            aria-label="Consultation steps"
-            className="my-7 flex items-start gap-2 rounded-xl border border-slate-200/70 bg-white/60 p-4 sm:gap-5"
-          >
-            {["Capture audio", "Review transcript", "Review notes", "Save"].map(
-              (step, index) => (
-                <li
-                  key={step}
-                  aria-current={
-                    index ===
-                    (savedRecord && !dirty
-                      ? 3
-                      : notesResult
-                        ? 2
-                        : transcription
-                          ? 1
-                          : 0)
-                      ? "step"
-                      : undefined
-                  }
-                  className="flex min-w-0 flex-1 flex-col items-center gap-2 text-center sm:flex-row sm:text-left"
-                >
-                  <span
-                    className={`flex size-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${index === (savedRecord && !dirty ? 3 : notesResult ? 2 : transcription ? 1 : 0) ? "bg-teal-700 text-white" : "bg-slate-100 text-slate-500"}`}
-                  >
-                    0{index + 1}
-                  </span>
-                  <span
-                    className={`text-[11px] sm:text-xs ${index === (savedRecord && !dirty ? 3 : notesResult ? 2 : transcription ? 1 : 0) ? "font-semibold text-teal-800" : "text-slate-500"}`}
-                  >
-                    {step}
-                  </span>
-                </li>
-              ),
-            )}
-          </ol>
-
-          <AudioInput
-            cloud={configuration.cloud}
-            compact={Boolean(transcription)}
-            key={inputVersion}
-            onAudioReady={acceptAudio}
-            onReset={() => {
-              discardCloudJob();
-              setAudio(null);
-              setAudioPath(undefined);
-              clearTranscript();
-            }}
-            onBeforeReplace={beforeReplace}
-            onBusyChange={setAudioBusy}
-          />
-
-          <div
-            role="group"
-            aria-label="Workspace panels"
-            className="mt-6 flex gap-1 rounded-lg border border-slate-200 bg-white p-1 xl:hidden"
-          >
-            <button
-              aria-pressed={panel === "transcript"}
-              onClick={() => setPanel("transcript")}
-              className={`min-h-11 flex-1 rounded-md text-xs font-semibold ${panel === "transcript" ? "bg-teal-50 text-teal-800" : "text-slate-500"}`}
-            >
-              Transcript
-            </button>
-            <button
-              aria-pressed={panel === "notes"}
-              onClick={() => setPanel("notes")}
-              className={`min-h-11 flex-1 rounded-md text-xs font-semibold ${panel === "notes" ? "bg-teal-50 text-teal-800" : "text-slate-500"}`}
-            >
-              Notes
-            </button>
-          </div>
-          <div className="mt-4 grid items-start gap-5 xl:grid-cols-2">
-            <section
-              aria-labelledby="transcript-heading"
-              className={`soft-panel animate-enter min-h-72 min-w-0 flex-col xl:flex ${panel === "transcript" ? "flex" : "hidden"}`}
-            >
-              <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-4">
-                <MessageSquareText
-                  aria-hidden="true"
-                  size={17}
-                  className="text-slate-500"
-                />
-                <h2
-                  id="transcript-heading"
-                  className="text-[13px] font-semibold"
-                >
-                  Conversation transcript
-                </h2>
-                <span className="ml-auto text-[10px] text-slate-500">
-                  {transcription
-                    ? `${transcription.transcript.speakers.length} speakers`
-                    : audio
-                      ? "Audio captured"
-                      : "Waiting for audio"}
-                </span>
-              </div>
-              <div className="border-b border-slate-100 px-5 py-4">
-                {!configuration.transcriptionConfigured && (
-                  <p className="mb-3 text-xs leading-6 text-amber-900">
-                    To transcribe, add{" "}
-                    {configuration.provider === "assemblyai"
-                      ? "ASSEMBLYAI_API_KEY"
-                      : "GEMINI_API_KEY"}{" "}
-                    to .env.local and restart the app. Your key stays on the
-                    server.
-                  </p>
-                )}
-                <div className="flex flex-wrap items-center gap-3">
-                  <button
-                    onClick={() => void transcribe()}
-                    disabled={!audio || busy}
-                    className="min-h-11 rounded-lg bg-teal-700 px-4 text-xs font-semibold text-white disabled:opacity-50"
-                  >
-                    {transcribing
-                      ? "Transcribing…"
-                      : transcription
-                        ? "Transcribe again"
-                        : "Transcribe audio"}
-                  </button>
-                  {transcribing && (
-                    <button
-                      onClick={cancelTranscription}
-                      className="min-h-11 px-3 text-xs font-semibold text-slate-600"
-                    >
-                      Cancel transcription
-                    </button>
-                  )}
-                  <p
-                    role="status"
-                    aria-live="polite"
-                    className="text-[11px] text-slate-500"
-                  >
-                    {transcribing
-                      ? "Transcribing your audio…"
-                      : transcription
-                        ? "Transcript ready for review."
-                        : "Your recording is processed online into English."}
-                  </p>
-                </div>
-                {transcriptionError && (
-                  <p
-                    role="alert"
-                    className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs leading-6 text-red-800"
-                  >
-                    {transcriptionError}
-                  </p>
-                )}
-              </div>
-              {transcription ? (
-                <TranscriptReview
-                  transcript={transcription.transcript}
-                  assignments={assignments}
-                  disabled={busy}
-                  onTranscriptChange={editTranscript}
-                  onAssignmentsChange={editAssignments}
-                  onPendingEdit={() => setDirty(true)}
-                />
-              ) : (
-                <div className="flex flex-1 flex-col items-center justify-center px-6 py-9 text-center">
-                  <span className="flex size-11 items-center justify-center rounded-xl bg-slate-50">
-                    <AudioLines
-                      aria-hidden="true"
-                      size={23}
-                      strokeWidth={1.5}
-                      className="text-slate-400"
-                    />
-                  </span>
-                  <p className="mt-4 text-xs font-semibold text-slate-600">
-                    Every voice, in context
-                  </p>
-                  <p className="mt-2 max-w-64 text-[11px] leading-6 text-slate-500">
-                    Your transcript will appear here with speaker labels and
-                    timestamps.
-                  </p>
-                </div>
-              )}
-              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-5 py-4 xl:hidden">
-                <p className="text-xs text-slate-500">
-                  Review the words and confirm who is speaking.
+          <div className="mb-7 flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-semibold tracking-tight">
+                {notesResult ? "Review your notes" : "New consultation"}
+              </h1>
+              {!transcription && !working && (
+                <p className="mt-3 leading-7 text-slate-700">
+                  Record a conversation or upload an audio file.
                 </p>
-                {transcription && (
-                  <button
-                    onClick={() =>
-                      notesResult ? setPanel("notes") : void createNotes()
-                    }
-                    disabled={busy}
-                    className="min-h-11 rounded-lg bg-teal-700 px-4 text-xs font-semibold text-white disabled:opacity-50"
-                  >
-                    {notesResult ? "Review notes" : "Generate notes"}
-                  </button>
-                )}
+              )}
+              {notesResult && !working && (
+                <p
+                  role="status"
+                  className="mt-2 text-sm leading-6 text-slate-700"
+                >
+                  {savedRecord && !dirty
+                    ? "All changes saved."
+                    : "Draft — review before saving."}
+                </p>
+              )}
+            </div>
+            {notesResult && !working && (
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => void save()}
+                  disabled={!title.trim() || busy || !dirty}
+                  className="flex min-h-11 items-center gap-2 rounded-lg bg-teal-700 px-4 text-sm font-semibold text-white hover:bg-teal-800 disabled:bg-slate-200 disabled:text-slate-500"
+                >
+                  <Save aria-hidden="true" size={17} />{" "}
+                  {saving ? "Saving…" : "Save consultation"}
+                </button>
+                <button
+                  onClick={exportMarkdown}
+                  disabled={!savedRecord || dirty || busy}
+                  className="min-h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold disabled:text-slate-400"
+                >
+                  Download notes
+                </button>
               </div>
-            </section>
-            <section
-              aria-labelledby="notes-heading"
-              className={`soft-panel animate-enter min-h-72 min-w-0 flex-col xl:flex ${panel === "notes" ? "flex" : "hidden"}`}
+            )}
+          </div>
+          {storageError && (
+            <p
+              role="alert"
+              className="mb-5 rounded-lg bg-red-50 px-4 py-3 text-sm leading-6 text-red-800"
             >
-              <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-4">
-                <FileText
-                  aria-hidden="true"
-                  size={17}
-                  className="text-slate-500"
-                />
-                <h2 id="notes-heading" className="text-[13px] font-semibold">
-                  Consultation notes
-                </h2>
-                <span className="ml-auto text-[10px] text-slate-500">
-                  {notesResult ? "Ready for review" : "No notes yet"}
-                </span>
-              </div>
-              <div className="border-b border-slate-100 px-5 py-4">
-                <div className="flex flex-wrap items-center gap-3">
+              {storageError}
+            </p>
+          )}
+          {sample && (
+            <p className="mb-5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900">
+              <strong>Prepared fictional sample</strong>. This uses an example
+              transcript; no new audio was transcribed.
+            </p>
+          )}
+          <div
+            className={
+              working ||
+              (transcription && !audio) ||
+              (notesResult && !showConversation)
+                ? "hidden"
+                : ""
+            }
+          >
+            <AudioInput
+              cloud={configuration.cloud}
+              disabled={working || saving}
+              key={inputVersion}
+              onAudioReady={acceptAudio}
+              onReset={() => {
+                discardCloudJob();
+                setAudio(null);
+                setAudioPath(undefined);
+                clearTranscript();
+              }}
+              onBeforeReplace={beforeReplace}
+              onBusyChange={setAudioBusy}
+            />
+            {!transcription && (
+              <button
+                onClick={() => void loadSample()}
+                disabled={busy}
+                className="mt-3 min-h-11 text-sm font-medium text-slate-700 underline decoration-slate-300 underline-offset-4 disabled:opacity-50"
+              >
+                Try a sample conversation
+              </button>
+            )}
+          </div>
+          {working ? (
+            <section
+              aria-label="Creating notes"
+              className="soft-panel animate-enter flex flex-col items-center gap-5 px-6 py-12 text-center"
+            >
+              <LoaderCircle
+                aria-hidden="true"
+                size={30}
+                className="animate-spin text-teal-700"
+              />
+              <p
+                role="status"
+                aria-live="polite"
+                className="text-lg font-semibold"
+              >
+                {generatingNotes
+                  ? "Preparing your notes…"
+                  : "Reading the conversation…"}
+              </p>
+              <p className="text-sm leading-6 text-slate-700">
+                This may take a little while. Keep this page open.
+              </p>
+              <button
+                onClick={cancelCreation}
+                className="min-h-11 rounded-lg border border-slate-300 px-5 text-sm font-semibold hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+            </section>
+          ) : (
+            <>
+              {transcriptionError && (
+                <p
+                  role="alert"
+                  className="mt-5 rounded-lg bg-red-50 px-4 py-3 text-sm leading-6 text-red-800"
+                >
+                  {transcriptionError}
+                </p>
+              )}
+              {notesError && (
+                <p
+                  role="alert"
+                  className="mt-5 rounded-lg bg-red-50 px-4 py-3 text-sm leading-6 text-red-800"
+                >
+                  {notesError}
+                </p>
+              )}
+              {!notesResult && (audio || transcription) && (
+                <div className="mt-6">
                   <button
-                    onClick={() => void createNotes()}
-                    disabled={!transcription || busy}
-                    className="min-h-11 rounded-lg bg-teal-700 px-4 text-xs font-semibold text-white disabled:opacity-50"
+                    onClick={() => void createConsultationNotes()}
+                    disabled={busy}
+                    className="min-h-12 rounded-lg bg-teal-700 px-6 text-base font-semibold text-white hover:bg-teal-800 disabled:bg-slate-200 disabled:text-slate-500"
                   >
-                    {generatingNotes
-                      ? "Generating notes…"
-                      : notesResult
-                        ? "Regenerate notes"
-                        : "Generate notes"}
+                    Create notes
                   </button>
-                  {generatingNotes && (
-                    <button
-                      onClick={cancelNotes}
-                      className="min-h-11 px-3 text-xs font-semibold text-slate-600"
-                    >
-                      Cancel notes
-                    </button>
-                  )}
-                </div>
-                {!configuration.notesConfigured && (
-                  <p className="mt-3 text-xs leading-6 text-amber-900">
-                    Add GROQ_API_KEY and restart the app to generate new notes.
-                    The prepared sample works without a key.
-                  </p>
-                )}
-                {notesError && (
-                  <p
-                    role="alert"
-                    className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs leading-6 text-red-800"
-                  >
-                    {notesError}
-                  </p>
-                )}
-              </div>
-              {notesResult && transcription ? (
-                <NotesEditor
-                  result={notesResult}
-                  transcript={transcription.transcript}
-                  disabled={busy}
-                  onPendingEdit={() => setDirty(true)}
-                  onChange={(next) => {
-                    setNotesResult(next);
-                    setDirty(true);
-                  }}
-                  onSource={focusSource}
-                />
-              ) : (
-                <div className="flex flex-1 flex-col items-center justify-center px-6 py-9 text-center">
-                  <span className="flex size-11 items-center justify-center rounded-xl bg-teal-50">
-                    <FileText
-                      aria-hidden="true"
-                      size={23}
-                      strokeWidth={1.5}
-                      className="text-teal-600"
-                    />
-                  </span>
-                  <p className="mt-4 text-xs font-semibold text-slate-600">
-                    The details that matter
-                  </p>
-                  <p className="mt-2 max-w-64 text-[11px] leading-6 text-slate-500">
-                    Organized notes, decisions, and next steps linked to the
-                    conversation.
+                  <p className="mt-3 text-sm leading-6 text-slate-700">
+                    {transcription
+                      ? "Your conversation is ready. You can check it before creating notes."
+                      : "Your recording is processed online. The notes will be in English."}
                   </p>
                 </div>
               )}
-            </section>
-          </div>
-          <p className="mt-6 flex items-start justify-center gap-2 text-[11px] leading-5 text-slate-500">
-            <ShieldCheck
-              aria-hidden="true"
-              size={15}
-              className="mt-0.5 shrink-0 text-teal-700"
-            />{" "}
-            Use fictional conversations in this preview. Always review
-            AI-generated content.
-          </p>
+              {transcription && (
+                <>
+                  <div className="my-6 flex flex-wrap items-end gap-4">
+                    {transcription && (
+                      <div className="min-w-0 w-full sm:w-auto sm:flex-1">
+                        <label
+                          htmlFor="consultation-title"
+                          className="mb-2 block text-sm font-semibold"
+                        >
+                          Consultation title
+                        </label>
+                        <input
+                          id="consultation-title"
+                          value={title}
+                          maxLength={120}
+                          disabled={busy}
+                          onChange={(event) => {
+                            titleEdited.current = true;
+                            setTitle(event.currentTarget.value);
+                            setDirty(true);
+                          }}
+                          className="min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-base disabled:opacity-60"
+                        />
+                      </div>
+                    )}
+                    <button
+                      onClick={() => {
+                        setShowConversation(!showConversation);
+                        setPanel(showConversation ? "notes" : "transcript");
+                      }}
+                      className="min-h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold"
+                    >
+                      {showConversation
+                        ? "Hide conversation"
+                        : "View conversation"}
+                    </button>
+                  </div>
+                  {showConversation && notesResult && (
+                    <div
+                      role="group"
+                      aria-label="Workspace panels"
+                      className="mb-4 flex gap-1 rounded-lg border border-slate-200 bg-white p-1 xl:hidden"
+                    >
+                      <button
+                        aria-pressed={panel === "notes"}
+                        onClick={() => setPanel("notes")}
+                        className={
+                          "min-h-11 flex-1 rounded-md text-sm font-semibold " +
+                          (panel === "notes"
+                            ? "bg-slate-100"
+                            : "text-slate-600")
+                        }
+                      >
+                        Notes
+                      </button>
+                      <button
+                        aria-pressed={panel === "transcript"}
+                        onClick={() => setPanel("transcript")}
+                        className={
+                          "min-h-11 flex-1 rounded-md text-sm font-semibold " +
+                          (panel === "transcript"
+                            ? "bg-slate-100"
+                            : "text-slate-600")
+                        }
+                      >
+                        Conversation
+                      </button>
+                    </div>
+                  )}
+                  <div
+                    className={
+                      "grid items-start gap-5 " +
+                      (showConversation && notesResult ? "xl:grid-cols-2" : "")
+                    }
+                  >
+                    {notesResult && (
+                      <section
+                        aria-labelledby="notes-heading"
+                        className={
+                          "soft-panel animate-enter min-w-0 " +
+                          (showConversation && panel === "transcript"
+                            ? "hidden xl:block"
+                            : "")
+                        }
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
+                          <h2
+                            id="notes-heading"
+                            className="flex items-center gap-2 text-lg font-semibold"
+                          >
+                            <FileText aria-hidden="true" size={20} />{" "}
+                            Consultation notes
+                          </h2>
+                          <button
+                            onClick={() => void createConsultationNotes()}
+                            disabled={busy}
+                            className="min-h-11 px-2 text-sm font-medium text-slate-700 underline decoration-slate-300 underline-offset-4 disabled:opacity-50"
+                          >
+                            Regenerate notes
+                          </button>
+                        </div>
+                        <NotesEditor
+                          result={notesResult}
+                          transcript={transcription.transcript}
+                          disabled={busy}
+                          onPendingEdit={() => setDirty(true)}
+                          onChange={(next) => {
+                            setNotesResult(next);
+                            setDirty(true);
+                          }}
+                          onSource={focusSource}
+                        />
+                      </section>
+                    )}
+                    {showConversation && (
+                      <section
+                        aria-labelledby="transcript-heading"
+                        className={
+                          "soft-panel animate-enter min-w-0 " +
+                          (notesResult && panel !== "transcript"
+                            ? "hidden xl:block"
+                            : "")
+                        }
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
+                          <h2
+                            id="transcript-heading"
+                            className="flex items-center gap-2 text-lg font-semibold"
+                          >
+                            <MessageSquareText aria-hidden="true" size={20} />{" "}
+                            Conversation transcript
+                          </h2>
+                          {audio && (
+                            <button
+                              onClick={() => void transcribe()}
+                              disabled={busy}
+                              className="min-h-11 px-2 text-sm font-medium text-slate-700 underline decoration-slate-300 underline-offset-4 disabled:opacity-50"
+                            >
+                              Transcribe again
+                            </button>
+                          )}
+                        </div>
+                        <TranscriptReview
+                          transcript={transcription.transcript}
+                          assignments={assignments}
+                          disabled={busy}
+                          onTranscriptChange={editTranscript}
+                          onAssignmentsChange={editAssignments}
+                          onPendingEdit={() => setDirty(true)}
+                        />
+                      </section>
+                    )}
+                  </div>
+                </>
+              )}
+            </>
+          )}
+          {notesResult && !working && (
+            <p className="mt-5 text-sm leading-6 text-slate-700">
+              Saving stores the reviewed text, not the recording. Check the
+              notes and speaker labels before saving.
+            </p>
+          )}
         </main>
       </div>
     </div>

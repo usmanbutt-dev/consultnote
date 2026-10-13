@@ -34,7 +34,7 @@ export function DocumentTextarea({
       {...props}
       ref={ref}
       rows={1}
-      className={`block min-h-6 w-full resize-none overflow-hidden border-0 bg-transparent p-0 text-xs leading-6 text-slate-700 disabled:opacity-60 ${className ?? ""}`}
+      className={`block min-h-7 w-full resize-none overflow-hidden border-0 bg-transparent p-0 text-base leading-7 text-slate-800 disabled:opacity-60 ${className ?? ""}`}
       onInput={(event) => {
         fit(event.currentTarget);
         onInput?.(event);

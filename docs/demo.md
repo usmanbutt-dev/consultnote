@@ -14,14 +14,14 @@ Keys remain on the server. Audio is sent to AssemblyAI; transcript text is sent 
 ## Five-minute walkthrough
 
 1. Explain the problem: capture the full conversation, including financial and practical context, without treating generated notes as verified facts.
-2. Upload a short fictional recording or record both participants. Play it back, then select **Transcribe audio**. Show the speaker boundaries and the separate role suggestions.
-3. Review the words and correct a role if needed. Select **Generate notes**. Use a source button to focus the supporting transcript passage; edit one note's wording.
-4. Enter a title and select **Save consultation**. Start a new consultation, reopen the saved title from history and show that the recording is absent. Rename and save it, then select **Export Markdown**.
+2. Upload a short fictional recording or record both participants. Play it back, then select **Create notes**. Explain the two visible progress stages and Cancel.
+3. Review the draft notes. Select **View conversation** to inspect the words and speaker roles. Expand **See in conversation** and select a passage to focus its supporting text; edit one note's wording. Changing transcript text or roles discards outdated notes after confirmation; **Create notes** then uses the edited transcript without re-uploading audio.
+4. Review the suggested title and select **Save consultation**. Start a new consultation, reopen the saved title from history and show that the recording is absent. Rename and save it, then select **Download notes** for Markdown.
 5. Explain failures: a provider error preserves the draft; cancelled/stale results are ignored; editing transcript text or roles asks before invalidating notes; stale notes cannot be saved.
 
 ## Demonstration without external APIs
 
-Select **Load sample consultation**. The **Prepared fictional sample** banner explicitly identifies example text; the app has not transcribed the selected recording. Its transcript and notes can be reviewed, saved, reopened and exported without external API calls. The label remains after saving/reopening and in Markdown. Generating new notes still requires Groq.
+Select **Try a sample conversation**. The **Prepared fictional sample** banner explicitly identifies example text; the app has not transcribed the selected recording. Its notes appear first, with the conversation available on demand. It can be reviewed, saved, reopened and downloaded without external API calls. The label remains after saving/reopening and in Markdown. Regenerating notes still requires Groq.
 
 Use this prepared path if live services are unavailable. State that it demonstrates the review/storage/export workflow with saved material. Do not represent it as live transcription or a new AI result.
 

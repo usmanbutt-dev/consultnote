@@ -26,7 +26,7 @@ export function NotesEditor({
   return (
     <div className="space-y-5 px-5 py-5">
       {error && (
-        <p role="alert" className="text-xs text-red-800">
+        <p role="alert" className="text-sm text-red-800">
           {error}
         </p>
       )}
@@ -35,7 +35,7 @@ export function NotesEditor({
           key={section.kind}
           aria-label={`${titles[section.kind]} notes`}
         >
-          <h3 className="mb-3 text-xs font-semibold text-slate-700">
+          <h3 className="mb-3 text-base font-semibold text-slate-800">
             {titles[section.kind]}
           </h3>
           <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">
@@ -87,9 +87,9 @@ export function NotesEditor({
                 </li>
               ))}
             </ul>
-            <details className="mt-3 border-t border-slate-100 pt-3 text-[11px] text-slate-500">
+            <details className="mt-3 border-t border-slate-100 pt-3 text-sm text-slate-700">
               <summary className="w-fit rounded-sm">
-                Check in transcript
+                See in conversation
               </summary>
               <ol className="mt-3 space-y-3">
                 {section.items.map((item, index) => (
@@ -108,7 +108,7 @@ export function NotesEditor({
                             disabled={disabled}
                             aria-label={`Source segment ${n}`}
                             onClick={() => onSource(id)}
-                            className="min-h-9 rounded-md border border-teal-200 bg-white px-2 text-[11px] font-semibold text-teal-800 hover:bg-teal-50"
+                            className="min-h-11 rounded-md border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-800 hover:bg-slate-50"
                           >
                             Passage {n}
                           </button>

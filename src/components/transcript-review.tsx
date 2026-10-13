@@ -41,7 +41,7 @@ export function TranscriptReview({
         disabled={disabled}
         className="grid gap-3 sm:grid-cols-2 disabled:opacity-60"
       >
-        <legend className="mb-3 text-xs font-semibold text-slate-700">
+        <legend className="mb-3 text-base font-semibold text-slate-800">
           Speakers
         </legend>
         {transcript.speakers.map((speaker, index) => (
@@ -49,7 +49,7 @@ export function TranscriptReview({
             <div className="flex flex-wrap items-center justify-between gap-2">
               <label
                 htmlFor={`role-${speaker.id}`}
-                className="text-xs font-semibold"
+                className="text-sm font-semibold"
               >
                 {transcript.details?.names.find(
                   (name) => name.speakerId === speaker.id,
@@ -62,7 +62,7 @@ export function TranscriptReview({
                   assignments.find((item) => item.speakerId === speaker.id)
                     ?.role ?? "unknown"
                 }
-                className="min-h-10 rounded-lg border border-slate-300 bg-white px-3 text-xs"
+                className="min-h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm"
                 onChange={(event) => {
                   const role = speakerRoleSchema.safeParse(
                     event.currentTarget.value,
@@ -87,7 +87,7 @@ export function TranscriptReview({
         ))}
       </fieldset>
       {error && (
-        <p role="alert" className="mt-4 text-xs leading-6 text-red-800">
+        <p role="alert" className="mt-4 text-sm leading-6 text-red-800">
           {error}
         </p>
       )}
@@ -124,8 +124,8 @@ export function TranscriptReview({
               id={`transcript-${segment.id}`}
               className="border-b border-slate-100 pb-4 last:border-0 last:pb-0"
             >
-              <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-[10px]">
-                <h3 className="text-xs font-semibold text-teal-800">
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-xs">
+                <h3 className="text-sm font-semibold text-slate-800">
                   {label}
                   {name ? ` · ${name}` : ""}
                   {duplicateLabel ? ` · Speaker ${speakerIndex + 1}` : ""}

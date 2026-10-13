@@ -70,9 +70,7 @@ test("preserves valid audio after a bad replacement and revokes replaced preview
     buffer: Buffer.from("not audio"),
   });
   await expect(
-    page
-      .getByRole("region", { name: "Start with a conversation" })
-      .getByRole("alert"),
+    page.getByRole("region", { name: "Audio recording" }).getByRole("alert"),
   ).toContainText("MP3, WAV, WebM or OGG");
   await expect(page.getByLabel("Audio playback")).toHaveAttribute(
     "src",
@@ -80,9 +78,7 @@ test("preserves valid audio after a bad replacement and revokes replaced preview
   );
   await input.setInputFiles(fixture);
   await expect(
-    page
-      .getByRole("region", { name: "Start with a conversation" })
-      .getByRole("alert"),
+    page.getByRole("region", { name: "Audio recording" }).getByRole("alert"),
   ).toHaveCount(0);
   await expect
     .poll(() => page.getByLabel("Audio playback").getAttribute("src"))
@@ -166,9 +162,7 @@ test("denied microphone leaves file upload available", async ({ page }) => {
     .getByRole("button", { name: "Start recording", exact: true })
     .click();
   await expect(
-    page
-      .getByRole("region", { name: "Start with a conversation" })
-      .getByRole("alert"),
+    page.getByRole("region", { name: "Audio recording" }).getByRole("alert"),
   ).toContainText("Allow microphone access");
   await page
     .getByRole("button", { name: "Upload recording", exact: true })
@@ -186,9 +180,7 @@ test("unsupported recording leaves file upload available", async ({ page }) => {
     .getByRole("button", { name: "Start recording", exact: true })
     .click();
   await expect(
-    page
-      .getByRole("region", { name: "Start with a conversation" })
-      .getByRole("alert"),
+    page.getByRole("region", { name: "Audio recording" }).getByRole("alert"),
   ).toContainText("Upload a recording");
   await expect(
     page.getByRole("button", { name: "Start recording", exact: true }),
@@ -366,7 +358,7 @@ test("cancel ignores an in-flight validation response", async ({ page }) => {
   release();
   await handled;
   await expect(
-    page.getByRole("button", { name: "Choose audio file", exact: true }),
+    page.getByRole("button", { name: "Upload recording", exact: true }),
   ).toBeEnabled();
   await expect(page.getByLabel("Audio playback")).toHaveCount(0);
   await expect(page.getByText("Audio ready", { exact: true })).toHaveCount(0);
@@ -399,9 +391,7 @@ test("keeps a captured recording for retry when audio validation fails", async (
     .getByRole("button", { name: "Stop recording", exact: true })
     .click();
   await expect(
-    page
-      .getByRole("region", { name: "Start with a conversation" })
-      .getByRole("alert"),
+    page.getByRole("region", { name: "Audio recording" }).getByRole("alert"),
   ).toContainText("temporarily unavailable");
   await page
     .getByRole("button", { name: "Upload recording", exact: true })

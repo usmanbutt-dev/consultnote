@@ -11,6 +11,24 @@ const result = {
   model: "fictional-test-model",
   promptVersion: "transcribe-v1",
 };
+test.beforeEach(async ({ page }) => {
+  await page.route("**/api/notes", (route) =>
+    route.fulfill({
+      status: 503,
+      json: {
+        error: {
+          code: "AI_UNAVAILABLE",
+          message: "Notes are unavailable for this transcript-only check.",
+        },
+      },
+    }),
+  );
+});
+async function viewConversation(page: Page) {
+  await page
+    .getByRole("button", { name: "View conversation", exact: true })
+    .click();
+}
 async function upload(page: Page) {
   await page.goto("/");
   await page
@@ -48,9 +66,8 @@ test("shows named speakers and suggests a title without overwriting a custom tit
     route.fulfill({ json: named }),
   );
   await upload(page);
-  await page
-    .getByRole("button", { name: "Transcribe audio", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Create notes", exact: true }).click();
+  await viewConversation(page);
   await expect(
     page
       .getByRole("heading", { name: "Doctor · Dr. Smith", exact: true })
@@ -111,9 +128,8 @@ test("shows an editable transcript, approximate timestamps and suggested roles",
     route.fulfill({ json: third }),
   );
   await upload(page);
-  await page
-    .getByRole("button", { name: "Transcribe audio", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Create notes", exact: true }).click();
+  await viewConversation(page);
   await expect(
     page.getByLabel("Transcript segment 1", { exact: true }),
   ).toHaveValue(fixture.segments[0].text);
@@ -172,22 +188,17 @@ test("quota failure preserves audio and allows exactly one manual retry", async 
   });
   await upload(page);
   const preview = await page.getByLabel("Audio playback").getAttribute("src");
-  await page
-    .getByRole("button", { name: "Transcribe audio", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Create notes", exact: true }).click();
   await expect(
-    page
-      .getByRole("region", { name: "Conversation transcript" })
-      .getByRole("alert"),
+    page.getByRole("alert").filter({ hasText: "quota reached" }),
   ).toContainText("quota reached");
   await expect(page.getByLabel("Audio playback")).toHaveAttribute(
     "src",
     preview!,
   );
   expect(attempts).toBe(1);
-  await page
-    .getByRole("button", { name: "Transcribe audio", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Create notes", exact: true }).click();
+  await viewConversation(page);
   await expect(
     page.getByLabel("Transcript segment 1", { exact: true }),
   ).toBeVisible();
@@ -216,12 +227,10 @@ test("blocks duplicate submissions and ignores a response after resetting the dr
     }
   });
   await upload(page);
-  await page
-    .getByRole("button", { name: "Transcribe audio", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Create notes", exact: true }).click();
   await expect(
-    page.getByRole("button", { name: "Transcribing…", exact: true }),
-  ).toBeDisabled();
+    page.getByRole("status").filter({ hasText: "Reading the conversation" }),
+  ).toBeVisible();
   await page
     .getByRole("button", { name: "New consultation", exact: true })
     .click();
@@ -241,9 +250,8 @@ test("confirms before replacing a reviewed draft or removing its audio", async (
     route.fulfill({ json: result }),
   );
   await upload(page);
-  await page
-    .getByRole("button", { name: "Transcribe audio", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Create notes", exact: true }).click();
+  await viewConversation(page);
   const segment = page.getByLabel("Transcript segment 1", { exact: true });
   await segment.fill("My reviewed transcript.");
   await page
@@ -268,9 +276,7 @@ test("confirms before replacing a reviewed draft or removing its audio", async (
     buffer: Buffer.from("not audio"),
   });
   await expect(
-    page
-      .getByRole("region", { name: "Start with a conversation" })
-      .getByRole("alert"),
+    page.getByRole("region", { name: "Audio recording" }).getByRole("alert"),
   ).toContainText("MP3, WAV, WebM or OGG");
   await expect(segment).toHaveValue("My reviewed transcript.");
   page.once("dialog", (dialog) => dialog.accept());
@@ -300,9 +306,8 @@ test("keeps prior edits after a failed retranscription and restores invalid empt
         });
   });
   await upload(page);
-  await page
-    .getByRole("button", { name: "Transcribe audio", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Create notes", exact: true }).click();
+  await viewConversation(page);
   const segment = page.getByLabel("Transcript segment 1", { exact: true });
   await segment.fill("");
   await page.getByLabel("Transcript segment 2", { exact: true }).focus();
@@ -316,10 +321,7 @@ test("keeps prior edits after a failed retranscription and restores invalid empt
     .getByRole("button", { name: "Transcribe again", exact: true })
     .click();
   await expect(
-    page
-      .getByRole("region", { name: "Conversation transcript" })
-      .getByRole("alert")
-      .filter({ hasText: "too long" }),
+    page.getByRole("alert").filter({ hasText: "too long" }),
   ).toBeVisible();
   await expect(segment).toHaveValue("My reviewed transcript.");
   await expect(page.getByLabel("Speaker 1 role", { exact: true })).toHaveValue(
@@ -338,9 +340,8 @@ test("renders transcript content as text and works on a narrow screen", async ({
     route.fulfill({ json: unsafe }),
   );
   await upload(page);
-  await page
-    .getByRole("button", { name: "Transcribe audio", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Create notes", exact: true }).click();
+  await viewConversation(page);
   await expect(
     page.getByLabel("Transcript segment 1", { exact: true }),
   ).toHaveValue(unsafe.transcript.segments[0].text);
@@ -377,12 +378,10 @@ test("ignores transcription from audio that has been replaced", async ({
   });
   await upload(page);
   const first = await page.getByLabel("Audio playback").getAttribute("src");
-  await page
-    .getByRole("button", { name: "Transcribe audio", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Create notes", exact: true }).click();
   await expect(
-    page.getByRole("button", { name: "Transcribing…", exact: true }),
-  ).toBeDisabled();
+    page.getByRole("status").filter({ hasText: "Reading the conversation" }),
+  ).toBeVisible();
   await page.getByLabel("Audio file", { exact: true }).setInputFiles(audio);
   await expect
     .poll(() => page.getByLabel("Audio playback").getAttribute("src"))
@@ -393,7 +392,7 @@ test("ignores transcription from audio that has been replaced", async ({
     page.getByLabel("Transcript segment 1", { exact: true }),
   ).toHaveCount(0);
   await expect(
-    page.getByRole("button", { name: "Transcribe audio", exact: true }),
+    page.getByRole("button", { name: "Create notes", exact: true }),
   ).toBeEnabled();
 });
 
@@ -427,9 +426,8 @@ test("retrying a failed audio replacement confirms before discarding later trans
   await expect(
     page.getByRole("button", { name: "Retry audio check", exact: true }),
   ).toBeVisible();
-  await page
-    .getByRole("button", { name: "Transcribe audio", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Create notes", exact: true }).click();
+  await viewConversation(page);
   const segment = page.getByLabel("Transcript segment 1", { exact: true });
   await segment.fill("Reviewed after the failed replacement.");
   await page
@@ -461,26 +459,20 @@ test("retrying a failed audio replacement confirms before discarding later trans
 test("missing configuration gives an actionable error and keeps the audio", async ({
   page,
 }) => {
-  await upload(page);
   test.skip(
-    (await page
-      .getByText("Your key stays on the server.", { exact: false })
-      .count()) === 0,
+    process.env.EXPECT_MISSING_KEY !== "1",
     "Requires an unconfigured server; never make a live provider request from this suite.",
   );
-  await page
-    .getByRole("button", { name: "Transcribe audio", exact: true })
-    .click();
+  await upload(page);
+  await page.getByRole("button", { name: "Create notes", exact: true }).click();
   await expect(
-    page
-      .getByRole("region", { name: "Conversation transcript" })
-      .getByRole("alert"),
+    page.getByRole("alert").filter({ hasText: "_API_KEY" }),
   ).toContainText(/Configure (GEMINI|ASSEMBLYAI)_API_KEY/);
   await expect(page.getByLabel("Audio playback")).toHaveAttribute(
     "src",
     /^blob:/,
   );
   await expect(
-    page.getByRole("button", { name: "Transcribe audio", exact: true }),
+    page.getByRole("button", { name: "Create notes", exact: true }),
   ).toBeEnabled();
 });

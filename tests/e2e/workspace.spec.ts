@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-test("shows English transcript and notes side by side without language choices", async ({
+test("opens the English conversation beside notes without language choices", async ({
   page,
 }) => {
   await page.goto("/");
@@ -11,11 +11,14 @@ test("shows English transcript and notes side by side without language choices",
     0,
   );
   await page
-    .getByRole("button", { name: "Load sample consultation", exact: true })
+    .getByRole("button", { name: "Try a sample conversation", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "View conversation", exact: true })
     .click();
   await expect(
-    page.getByRole("list", { name: "Consultation steps" }),
-  ).toContainText("Save");
+    page.getByRole("button", { name: "Start recording", exact: true }),
+  ).toBeHidden();
   await expect(
     page.getByRole("heading", { name: "Conversation transcript", exact: true }),
   ).toBeVisible();
@@ -38,7 +41,7 @@ test("shows English transcript and notes side by side without language choices",
   const right = await page
     .getByRole("region", { name: "Consultation notes", exact: true })
     .boundingBox();
-  expect(right!.x).toBeGreaterThan(left!.x + left!.width);
+  expect(left!.x).toBeGreaterThan(right!.x + right!.width);
   expect(Math.abs(right!.y - left!.y)).toBeLessThan(2);
 });
 
@@ -54,41 +57,37 @@ test("opens an honest empty workspace without an AI key", async ({ page }) => {
     page.getByText("No consultations yet", { exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByText(
-      "Saving a consultation stores reviewed text, not the recording.",
-    ),
-  ).toBeVisible();
-  await expect(
     page.getByRole("button", { name: "Start recording", exact: true }),
   ).toBeEnabled();
   await expect(
     page.getByRole("button", { name: "Save consultation", exact: true }),
-  ).toBeDisabled();
+  ).toBeHidden();
   await page.screenshot({
     path: test.info().outputPath("desktop.png"),
     fullPage: true,
   });
 });
 
-test("switches input methods and starts a fresh consultation", async ({
+test("starts a fresh consultation after reviewing a sample", async ({
   page,
 }) => {
   await page.goto("/");
   await page
-    .getByRole("button", { name: "Upload recording", exact: true })
+    .getByRole("button", { name: "Try a sample conversation", exact: true })
     .click();
   await expect(
-    page.getByRole("button", { name: "Upload recording", exact: true }),
-  ).toHaveAttribute("aria-pressed", "true");
-  await expect(
-    page.getByRole("button", { name: "Choose audio file", exact: true }),
-  ).toBeEnabled();
+    page.getByLabel("History note 1", { exact: true }),
+  ).toBeVisible();
+  page.once("dialog", (dialog) => dialog.accept());
   await page
     .getByRole("button", { name: "New consultation", exact: true })
     .click();
   await expect(
-    page.getByRole("button", { name: "Record audio", exact: true }),
-  ).toHaveAttribute("aria-pressed", "true");
+    page.getByRole("button", { name: "Start recording", exact: true }),
+  ).toBeEnabled();
+  await expect(
+    page.getByLabel("Consultation title", { exact: true }),
+  ).toBeHidden();
 });
 
 test("keeps transcript and notes usable on a narrow screen", async ({
@@ -96,6 +95,15 @@ test("keeps transcript and notes usable on a narrow screen", async ({
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
+  await page
+    .getByRole("button", { name: "Try a sample conversation", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Consultation notes", exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "View conversation", exact: true })
+    .click();
   await expect(
     page.getByRole("heading", { name: "Conversation transcript", exact: true }),
   ).toBeVisible();

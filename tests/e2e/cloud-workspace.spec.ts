@@ -49,6 +49,15 @@ test.afterAll(async () => {
   await server?.close();
 });
 test.beforeEach(async ({ page }) => {
+  await page.route("**/api/notes", (route) => {
+    const input = route.request().postDataJSON();
+    return route.fulfill({
+      json: {
+        notes: rawNotes,
+        sourceDigest: sourceDigest(input.transcript, input.assignments),
+      },
+    });
+  });
   await page.route("**/api/consultations", (route) =>
     route.fulfill({ json: { consultations: [] } }),
   );
@@ -103,18 +112,7 @@ test("cloud workspace uploads large audio directly and requests English notes wi
     });
   });
   await upload(page);
-  await page
-    .getByRole("button", { name: "Transcribe audio", exact: true })
-    .click();
-  await expect(
-    page.getByLabel("Transcript segment 1", { exact: true }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Generate notes", exact: true }),
-  ).toHaveCount(1);
-  await page
-    .getByRole("button", { name: "Generate notes", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Create notes", exact: true }).click();
   await expect(page.getByLabel("History note 1", { exact: true })).toHaveValue(
     "Patient reports a headache.",
   );
@@ -141,13 +139,16 @@ for (const failure of ["connection", "gateway"] as const) {
     });
     await upload(page);
     await page
-      .getByRole("button", { name: "Transcribe audio", exact: true })
+      .getByRole("button", { name: "Create notes", exact: true })
       .click();
     await expect(page.getByRole("alert")).toContainText(
       failure === "connection" ? "connection" : "Gateway timeout",
     );
     await page
-      .getByRole("button", { name: "Transcribe audio", exact: true })
+      .getByRole("button", { name: "Create notes", exact: true })
+      .click();
+    await page
+      .getByRole("button", { name: "View conversation", exact: true })
       .click();
     await expect(
       page.getByLabel("Transcript segment 1", { exact: true }),
@@ -183,12 +184,10 @@ for (const replacement of ["invalid upload", "cancelled recording"] as const) {
       });
     await upload(page);
     await page
-      .getByRole("button", { name: "Transcribe audio", exact: true })
+      .getByRole("button", { name: "Create notes", exact: true })
       .click();
     await expect.poll(() => ids.length).toBe(1);
-    await page
-      .getByRole("button", { name: "Cancel transcription", exact: true })
-      .click();
+    await page.getByRole("button", { name: "Cancel", exact: true }).click();
     if (replacement === "invalid upload") {
       await page.route("**/api/audio/validate", (route) =>
         route.fulfill({
@@ -206,7 +205,7 @@ for (const replacement of ["invalid upload", "cancelled recording"] as const) {
       await expect(page.getByRole("alert")).toContainText("replacement audio");
     } else {
       await page
-        .getByRole("button", { name: "Record audio", exact: true })
+        .getByRole("button", { name: "Replace audio", exact: true })
         .click();
       await page
         .getByRole("button", { name: "Start recording", exact: true })
@@ -220,7 +219,10 @@ for (const replacement of ["invalid upload", "cancelled recording"] as const) {
     expect(deletions).toBe(0);
     finish = true;
     await page
-      .getByRole("button", { name: "Transcribe audio", exact: true })
+      .getByRole("button", { name: "Create notes", exact: true })
+      .click();
+    await page
+      .getByRole("button", { name: "View conversation", exact: true })
       .click();
     await expect(
       page.getByLabel("Transcript segment 1", { exact: true }),
@@ -260,14 +262,13 @@ test("starts fresh on the first retry after a terminal submission failure", asyn
     }),
   );
   await upload(page);
-  await page
-    .getByRole("button", { name: "Transcribe audio", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Create notes", exact: true }).click();
   await expect(page.getByRole("alert")).toContainText(
     "temporarily unavailable",
   );
+  await page.getByRole("button", { name: "Create notes", exact: true }).click();
   await page
-    .getByRole("button", { name: "Transcribe audio", exact: true })
+    .getByRole("button", { name: "View conversation", exact: true })
     .click();
   await expect(
     page.getByLabel("Transcript segment 1", { exact: true }),
