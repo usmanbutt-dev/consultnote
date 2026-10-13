@@ -16,7 +16,8 @@ const completed = {
 };
 let server: ViteDevServer;
 test.describe.configure({ mode: "serial" });
-test.beforeAll(async () => {
+test.beforeAll(async ({ browser }) => {
+  test.setTimeout(60_000);
   const root = fileURLToPath(new URL("../..", import.meta.url));
   const sdk = fileURLToPath(
     new URL("../fixtures/cloud-harness/supabase.ts", import.meta.url),
@@ -45,6 +46,22 @@ test.beforeAll(async () => {
     ],
   });
   await server.listen();
+  // Keep Vite's cold compilation outside each user-flow test's deadline.
+  const warmup = await browser.newPage();
+  try {
+    await warmup.route("**/api/consultations", (route) =>
+      route.fulfill({ json: { consultations: [] } }),
+    );
+    await warmup.goto(
+      "http://127.0.0.1:3202/tests/fixtures/cloud-harness/index.html",
+      { timeout: 60_000 },
+    );
+    await warmup
+      .getByRole("button", { name: "Upload recording", exact: true })
+      .waitFor();
+  } finally {
+    await warmup.close();
+  }
 });
 test.afterAll(async () => {
   await server?.close();

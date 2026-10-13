@@ -14,6 +14,14 @@ export default defineConfig({
   },
   webServer: {
     command: "npm run dev -- --port 3100",
+    env: {
+      NEXT_PUBLIC_SUPABASE_URL: "",
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "",
+      ASSEMBLYAI_API_KEY: "",
+      GROQ_API_KEY: "",
+      GEMINI_API_KEY: "",
+      DATABASE_PATH: ".superpowers/e2e.sqlite",
+    },
     url: "http://127.0.0.1:3100",
     timeout: 120_000,
   },

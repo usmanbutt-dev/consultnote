@@ -74,6 +74,8 @@ Unit tests exercise contracts, evidence, bounded audio, provider failures/deadli
 
 Browser tests use Microsoft Edge on Windows and Chromium elsewhere. Install Chromium with `npx playwright install chromium` when needed. Stop an existing development server before the standard browser suite: it starts its own server on port 3100, and Next.js permits one development server per checkout. CI runs the same checks with Node 24 and FFmpeg.
 
+The browser test server clears Supabase/provider configuration and uses a separate ignored SQLite database, even when your local environment is configured for the live cloud project. The controlled cloud fixture makes no real service requests.
+
 ## Architecture and documents
 
 One Next.js App Router application uses TypeScript, Tailwind, Zod, native browser audio APIs and Node 24's built-in SQLite locally. Optional Supabase mode uses verified authentication, owner-scoped Postgres and private audio Storage. Provider calls and secrets stay in server-only modules. A production build needs no existing database.
@@ -86,6 +88,6 @@ One Next.js App Router application uses TypeScript, Tailwind, Zod, native browse
 - [Supabase and Vercel setup](docs/deployment.md)
 - [Clinician/cloud design](docs/superpowers/specs/2026-10-13-clinician-cloud-design.md)
 
-Source IDs are validated; factual accuracy still requires review against audio. Models can misattribute statements, infer unsupported agreement, omit context or swap speakers. This remains a fictional-data interview demonstration. Live account, two-account isolation, cloud saving, PDF download and hosted Linux audio-validation checks passed. These checks made no AI calls; hosted AI completion and Urdu speech quality still need representative recordings. Password-reset email delivery awaits SMTP setup.
+Source IDs are validated; factual accuracy still requires review against audio. Models can misattribute statements, infer unsupported agreement, omit context or swap speakers. This remains a fictional-data interview demonstration. Live account, two-account isolation, cloud saving, PDF download and hosted Linux audio-validation checks passed. A separate hosted check completed the approved five-minute English MP3 through transcription, notes, save and reopen in 29.4 seconds for processing. Actual Urdu/mixed speech quality still needs representative recordings. Password-reset email delivery awaits SMTP setup.
 
 The source is versioned in the private [usmanbutt-dev/consultnote](https://github.com/usmanbutt-dev/consultnote) repository, with `main` connected to Vercel. Keys, recordings, SQLite data and diagnostic artifacts are Git-ignored and explicitly excluded from CLI deployment uploads. Include source, tests, documentation, `.env.example` and `package-lock.json` in a submission; exclude actual environment files and local data.

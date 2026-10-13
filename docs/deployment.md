@@ -6,7 +6,7 @@ Signup is immediate by the user's choice for this fictional-data interview demo.
 
 CLI versions used: Supabase 2.120.0 and Vercel 64.0.2. Supabase's API-key listing masks secret keys by default; retrieve the full server key with `supabase projects api-keys --reveal` into a private local file or pipe, never terminal logs or Git. Provider/server keys are stored as Vercel secrets for Production and Preview. `.vercelignore` excludes environment files, local databases, recordings and diagnostic output from CLI uploads.
 
-Live checks passed for signup/session, profile/photo CRUD, password changes, sign-out/login, cloud saving and PDF download, direct audio upload with Linux validation, two-account database/Storage isolation and password-confirmed deletion with owned-file cleanup. Disposable QA accounts/files were removed. No AI-provider calls were made; actual hosted transcription/notes completion and deferred SMTP still require separate checks.
+Live checks passed for signup/session, profile/photo CRUD, password changes, sign-out/login, cloud saving and PDF download, direct audio upload with Linux validation, two-account database/Storage isolation and password-confirmed deletion with owned-file cleanup. A separate hosted check processed the previously approved five-minute English MP3 through transcription and notes in 29.4 seconds, produced 32 transcript turns and verified saving/reopening. Disposable QA accounts/files were removed. Urdu/mixed speech quality and deferred SMTP still require separate checks.
 
 ## 1. Create the free Supabase project
 
@@ -71,4 +71,4 @@ The approved English MP3 completed transcription with English translation and En
 - Sign-in/confirmation failure: check redirects, email confirmation and SMTP setup.
 - Provider quota/busy error: the draft remains available. Resume a pending job instead of creating duplicate transcriptions.
 
-Current automated checks validate local workflows and mocked cloud boundaries. They do not prove the policies are installed correctly in your Supabase account or that Vercel tracing executes successfully in production; the cloud verification steps above are required after setup.
+Automated suites validate local workflows and controlled cloud boundaries. Separate live checks on this deployment verified installed two-account RLS/Storage isolation, account CRUD/deletion, Vercel's Linux audio inspection and the approved English MP3's transcription/notes/save/reopen flow. Repeat the cloud checks above after changing migrations or hosting settings; SMTP and actual Urdu/mixed recordings remain pending.

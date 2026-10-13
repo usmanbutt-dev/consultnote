@@ -1,5 +1,13 @@
 # AI evaluation and interview demonstration
 
+## Hosted English audio verification — 2026-10-14
+
+The previously approved `Doctor-Patient Cost of Care Conversation - trimmed.mp3` completed through [the hosted app](https://consultnote.vercel.app) using its configured AssemblyAI/Groq flow. Direct private upload and Linux validation returned HTTP 200; transcription-job submission returned 202; English notes returned 200; saving returned 201 and reopening restored the generated notes. Processing from **Create notes** to editable notes took 29.4 seconds and produced 32 transcript turns. The disposable doctor account and owned files/records were cleaned up.
+
+This separate check made live provider requests using the user's existing keys/trial access. It verifies hosted completion for this English recording, not factual accuracy or Urdu/mixed speech quality. Email delivery remains deferred. Automated browser tests explicitly disable cloud/provider configuration and use a separate SQLite database, preventing local test runs from using the configured live Supabase account. The controlled Vite fixture warms up during setup, keeping its cold compilation outside each user-flow test's deadline.
+
+After these test-isolation changes, all 210 unit tests and all 50 isolated production browser tests passed again, along with lint, types and formatting. Production save/restart/reopen/delete also passed in the isolated database.
+
 ## Hosted account and storage verification — 2026-10-14
 
 [Production](https://consultnote.vercel.app) is deployed to Vercel Hobby, backed by the user's confirmed Supabase Free organization. Both versioned migrations were applied through Supabase CLI and remote migration history matches. The private GitHub repository is connected to Vercel. Immediate signup is enabled by user choice; email confirmation and public password-reset delivery await custom SMTP.
