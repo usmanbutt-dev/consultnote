@@ -1,0 +1,33 @@
+# Dependencies and application output
+node_modules/
+.next/
+out/
+dist/
+*.tsbuildinfo
+
+# Secrets
+.env*
+!.env.example
+
+# Local data and recordings
+.data/
+uploads/
+tmp/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.db
+*.db-shm
+*.db-wal
+
+# Generated verification and tooling output
+coverage/
+playwright-report/
+test-results/
+.codegraph/
+*.log
+
+# Editor and operating-system files
+.idea/
+.DS_Store
+Thumbs.db
