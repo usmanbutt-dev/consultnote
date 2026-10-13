@@ -70,12 +70,14 @@ Use `@/*` as the `src/*` import alias. Unit tests use Vitest's Node environment;
 
 **Interfaces:** Export `ValidatedAudio = { bytes: Uint8Array; mimeType: string; durationSeconds: number }` and `readAudioRequest(request: Request): Promise<ValidatedAudio>`. `AudioInput` calls `onAudioReady(file: File)` and `onReset()`; its preview and microphone remain browser-owned. Add `readJsonRequest(request: Request): Promise<unknown>` enforcing the 1 MiB bound for subsequent endpoints.
 
-- [ ] Verify Node 24, `ffprobe`, and the supported recording MIME types on the demonstration machine. Document FFmpeg installation if missing; do not substitute unchecked metadata for inspection.
-- [ ] Write failing tests for request/file bounds, unsupported or misleading file signatures, missing audio tracks, unreadable input, duration 600 versus 601 seconds, WebM packet-duration fallback, probe timeout, and temporary-file cleanup. Add real generated WAV/silent fixtures plus a short browser-recorded fictional WebM for the integration check; keep mocked probe-result fixtures separate from actual audio.
-- [ ] Run `npm test -- tests/unit/audio.test.ts`; confirm expected failures. Add Playwright cases for upload preview, denied microphone permission, unsupported recording format with upload still enabled, track cleanup, and repeated input replacement.
-- [ ] Implement bounded multipart/JSON readers, `file-type` identification, safe temporary inspection with `ffprobe`, and independent server-side validation. Implement start/stop, 600-second auto-stop, input level, preview, reset, and object-URL cleanup.
-- [ ] Run the focused unit and browser tests. Manually inspect one actual MediaRecorder WebM with the server validator; test both accepted input and an oversized upload before any provider call exists.
-- [ ] Commit: `feat: add microphone recording and validated audio uploads`.
+- [x] Verify Node 24, `ffprobe`, and the supported recording MIME types on the demonstration machine. Document FFmpeg installation if missing; do not substitute unchecked metadata for inspection.
+- [x] Write failing tests for request/file bounds, unsupported or misleading file signatures, missing audio tracks, unreadable input, duration 600 versus 601 seconds, WebM packet-duration fallback, probe timeout, and temporary-file cleanup. Add real generated WAV/silent fixtures plus a short browser-recorded fictional WebM for the integration check; keep mocked probe-result fixtures separate from actual audio.
+- [x] Run `npm test -- tests/unit/audio.test.ts`; confirm expected failures. Add Playwright cases for upload preview, denied microphone permission, unsupported recording format with upload still enabled, track cleanup, and repeated input replacement.
+- [x] Implement bounded multipart/JSON readers, `file-type` identification, safe temporary inspection with `ffprobe`, and independent server-side validation. Implement start/stop, 600-second auto-stop, input level, preview, reset, and object-URL cleanup.
+- [x] Run the focused unit and browser tests. Manually inspect one actual MediaRecorder WebM with the server validator; test both accepted input and an oversized upload before any provider call exists.
+- [x] Commit: `feat: add microphone recording and validated audio uploads`.
+
+Implementation notes: `POST /api/audio/validate` makes this milestone independently usable before provider integration. Browser recording stops at 599 seconds to allow scheduling and packet overhead; server validation retains the strict 600-second limit. Failed validation retains the candidate audio for retry.
 
 ### Task 3: Gemini transcription and speaker review
 

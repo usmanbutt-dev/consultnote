@@ -4,26 +4,25 @@ import { useState } from "react";
 import {
   AudioLines,
   ChevronRight,
-  FileAudio,
   FileText,
   FolderOpen,
   HelpCircle,
   Laptop,
   MessageSquareText,
-  Mic,
   Plus,
   Save,
   ShieldCheck,
-  UploadCloud,
 } from "lucide-react";
+import { AudioInput } from "./audio-input";
 
 export function ConsultationWorkspace() {
-  const [input, setInput] = useState<"record" | "upload">("record");
+  const [audio, setAudio] = useState<File | null>(null);
+  const [inputVersion, setInputVersion] = useState(0);
   const [panel, setPanel] = useState<"transcript" | "notes">("transcript");
-  const isRecordingInput = input === "record";
 
   function newConsultation() {
-    setInput("record");
+    setAudio(null);
+    setInputVersion((version) => version + 1);
     setPanel("transcript");
   }
 
@@ -181,81 +180,11 @@ export function ConsultationWorkspace() {
             )}
           </ol>
 
-          <section
-            aria-labelledby="capture-heading"
-            className="soft-panel overflow-hidden"
-          >
-            <div className="flex flex-col justify-between gap-4 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-center sm:px-6">
-              <div>
-                <h2
-                  id="capture-heading"
-                  className="text-[15px] font-semibold tracking-[-0.2px]"
-                >
-                  Start with a conversation
-                </h2>
-                <p className="mt-1.5 text-xs text-slate-500">
-                  Record an appointment or bring an existing recording.
-                </p>
-              </div>
-              <fieldset className="flex w-fit gap-1 rounded-lg bg-slate-100 p-1">
-                <legend className="sr-only">Audio input method</legend>
-                <button
-                  aria-pressed={isRecordingInput}
-                  onClick={() => setInput("record")}
-                  className={`flex min-h-10 items-center gap-2 rounded-md px-3 text-[11px] font-semibold transition-colors ${isRecordingInput ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
-                >
-                  <Mic aria-hidden="true" size={14} /> Record audio
-                </button>
-                <button
-                  aria-pressed={!isRecordingInput}
-                  onClick={() => setInput("upload")}
-                  className={`flex min-h-10 items-center gap-2 rounded-md px-3 text-[11px] font-semibold transition-colors ${!isRecordingInput ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
-                >
-                  <UploadCloud aria-hidden="true" size={15} /> Upload recording
-                </button>
-              </fieldset>
-            </div>
-            <div className="capture-surface m-4 flex min-h-64 flex-col items-center justify-center rounded-xl border border-dashed border-teal-200/70 px-4 py-7 text-center sm:m-5">
-              <span className="microphone-ring mb-5 flex size-14 items-center justify-center rounded-full border border-teal-100 bg-white text-teal-700">
-                {isRecordingInput ? (
-                  <Mic aria-hidden="true" size={24} strokeWidth={1.7} />
-                ) : (
-                  <FileAudio aria-hidden="true" size={24} strokeWidth={1.7} />
-                )}
-              </span>
-              <h3 className="text-[15px] font-semibold">
-                {isRecordingInput
-                  ? "Ready when you are"
-                  : "Bring your recording"}
-              </h3>
-              <p className="mt-2 max-w-sm text-xs leading-6 text-slate-500">
-                {isRecordingInput
-                  ? "Capture both sides of the conversation from your microphone."
-                  : "Choose audio to turn the discussion into a transcript and notes."}
-              </p>
-              <button
-                disabled
-                aria-describedby="preview-notice"
-                className="mt-5 flex min-h-11 items-center gap-2 rounded-lg bg-teal-700 px-5 text-xs font-semibold text-white opacity-50"
-              >
-                {isRecordingInput ? (
-                  <Mic aria-hidden="true" size={15} />
-                ) : (
-                  <UploadCloud aria-hidden="true" size={16} />
-                )}
-                {isRecordingInput ? "Start recording" : "Choose audio file"}
-              </button>
-              <p className="mt-3 text-[10px] leading-5 text-slate-500">
-                MP3, WAV, WebM or OGG · Up to 10 MiB · 10 minutes
-              </p>
-            </div>
-            <p
-              id="preview-notice"
-              className="px-5 pb-5 text-center text-[11px] leading-5 text-slate-500"
-            >
-              Audio capture is not enabled in this workspace preview.
-            </p>
-          </section>
+          <AudioInput
+            key={inputVersion}
+            onAudioReady={setAudio}
+            onReset={() => setAudio(null)}
+          />
 
           <div
             role="group"
@@ -295,7 +224,7 @@ export function ConsultationWorkspace() {
                   Conversation transcript
                 </h2>
                 <span className="ml-auto text-[10px] text-slate-500">
-                  Waiting for audio
+                  {audio ? "Audio captured" : "Waiting for audio"}
                 </span>
               </div>
               <div className="flex flex-1 flex-col items-center justify-center px-6 py-9 text-center">

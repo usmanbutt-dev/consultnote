@@ -9,11 +9,13 @@ test("opens an honest empty workspace without an AI key", async ({ page }) => {
     page.getByText("No consultations yet", { exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByText("Audio capture is not enabled in this workspace preview."),
+    page.getByText(
+      "Transcription, notes and saving are not available in this preview yet.",
+    ),
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Start recording", exact: true }),
-  ).toBeDisabled();
+  ).toBeEnabled();
   await expect(
     page.getByRole("button", { name: "Save consultation", exact: true }),
   ).toBeDisabled();
@@ -23,7 +25,7 @@ test("opens an honest empty workspace without an AI key", async ({ page }) => {
   });
 });
 
-test("switches input previews and starts a fresh consultation", async ({
+test("switches input methods and starts a fresh consultation", async ({
   page,
 }) => {
   await page.goto("/");
@@ -35,7 +37,7 @@ test("switches input previews and starts a fresh consultation", async ({
   ).toHaveAttribute("aria-pressed", "true");
   await expect(
     page.getByRole("button", { name: "Choose audio file", exact: true }),
-  ).toBeDisabled();
+  ).toBeEnabled();
   await page
     .getByRole("button", { name: "New consultation", exact: true })
     .click();

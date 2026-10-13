@@ -17,6 +17,7 @@
     "format": "prettier --write --ignore-path .gitignore src tests *.ts *.mjs package.json tsconfig.json"
   },
   "dependencies": {
+    "file-type": "^22.1.1",
     "lucide-react": "^1.56.0",
     "next": "^16.4.0",
     "react": "^19.3.0",
