@@ -27,3 +27,16 @@ The role request retains all spoken text but omits timestamps and uses a 1,024-t
 Final review: focused-edit loss, implicit Gemini selection and rewritten note provenance were reproduced by failing tests and fixed. The provenance finding was regraded Important because an unchanged saved result must not claim a new model or sample origin. No deferred minor findings remain. One fresh review and one fix pass were performed; covering regressions and the full suite verified the fixes.
 
 Hosted CI, public deployment, natural overlapping speech, multilingual quality and real human microphone-to-AI accuracy remain unverified. See [AI evaluation](ai-evaluation.md) for measured behavior.
+
+## Clinician workflow and cloud preparation
+
+- Continue the existing feature branch and live checkout. The user wants to test changes locally and preserve the saved cost-of-care draft. The finishing skill, merge, push and deployment remain excluded.
+- Preserve stored note section keys and map them to clinician labels. New notes use `notes-v4`; existing notes retain their original text/model/prompt, and selected note language is recorded in new provenance.
+- Use Universal-2 for Urdu and mixed English/Urdu requests. Recording language and note language are independent. Real Urdu speech recognition and semantic note quality still require review against representative recordings.
+- Cloud mode uses verified Supabase users, owner RLS, private Storage and server-only transcription-job mutations. A service-role key is needed for job bookkeeping and atomic usage limits; it is never exposed to the browser. Actual Supabase installation and two-account checks are deferred at the user's request.
+- Send cloud audio directly to private Storage and use JSON validation/job requests. This avoids sending the recording through Vercel's function request body. Linux ffprobe is traced into audio functions; real hosted execution is pending.
+- Keep pending job IDs after interrupted connections or unconfirmed gateway errors. Confirmed application submission failures clear failed job state so one manual retry can upload and start fresh.
+- Retire the old cloud job only after replacement audio, reset, or draft navigation actually succeeds. Failed validation and cancelled microphone permission preserve the ready original recording and resumable job. Both replacement cases have browser regressions.
+- Raise the Next proxy body buffer to 12 MiB so multipart overhead does not truncate a valid 10 MiB recording before the app's own limits run. The oversized-upload rejection remains tested.
+- Commit the shared provider, workspace and cloud changes together to avoid intermediate commits with missing imports. One fresh final review reported one Important replacement bug and one Minor retry issue; both were fixed in one pass with behavioral regressions, without another review.
+- Leave pre-existing lint-tool advisories to a dependency maintenance task. The suggested audit fix downgrades Next's ESLint plugin from 16 to 14; the current application dependency additions introduced no reported runtime advisory in the audit.

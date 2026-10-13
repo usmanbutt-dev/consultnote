@@ -2,12 +2,18 @@
 
 import { useEffect, useRef, useState } from "react";
 import { FileAudio, Mic, Square, UploadCloud, X } from "lucide-react";
+import { uploadCloudAudio, removeCloudAudio } from "@/lib/cloud-client";
 
 const MAX_BYTES = 10 * 1024 * 1024;
 const MAX_SECONDS = 600;
 // Leave a second for timer delay and the final encoded audio packet.
 const RECORDING_STOP_SECONDS = MAX_SECONDS - 1;
-type ReadyAudio = { file: File; url: string; durationSeconds: number };
+type ReadyAudio = {
+  file: File;
+  url: string;
+  durationSeconds: number;
+  path?: string;
+};
 type Resources = {
   operation: number;
   abort?: AbortController;
@@ -48,11 +54,13 @@ export function AudioInput({
   onReset,
   onBeforeReplace,
   onBusyChange,
+  cloud = false,
 }: {
-  onAudioReady: (file: File) => void;
+  onAudioReady: (file: File, path?: string) => void;
   onReset: () => void;
   onBeforeReplace?: () => boolean;
   onBusyChange?: (busy: boolean) => void;
+  cloud?: boolean;
 }) {
   const [mode, setMode] = useState<"record" | "upload">("record");
   const [phase, setPhase] = useState<
@@ -101,6 +109,7 @@ export function AudioInput({
     if (current.url) URL.revokeObjectURL(current.url);
     current.url = undefined;
     setReady(null);
+    if (ready?.path) void removeCloudAudio(ready.path).catch(() => {});
     if (fileInput.current) fileInput.current.value = "";
     onReset();
   }
@@ -126,18 +135,25 @@ export function AudioInput({
     const form = new FormData();
     form.append("audio", file);
     try {
-      const response = await fetch("/api/audio/validate", {
-        method: "POST",
-        body: form,
-        signal: abort.signal,
-      });
-      const result = await response.json();
-      if (!response.ok)
+      const response = cloud
+        ? null
+        : await fetch("/api/audio/validate", {
+            method: "POST",
+            body: form,
+            signal: abort.signal,
+          });
+      const result = cloud
+        ? await uploadCloudAudio(file, abort.signal)
+        : await response!.json();
+      if (response && !response.ok)
         throw new Error(
           result.error?.message ??
             "Audio validation failed. Try another recording.",
         );
-      if (operation !== current.operation) return;
+      if (operation !== current.operation) {
+        if (result.path) void removeCloudAudio(result.path).catch(() => {});
+        return;
+      }
       const normalized = new File([file], file.name, { type: result.mimeType });
       const url = URL.createObjectURL(normalized);
       if (current.url) URL.revokeObjectURL(current.url);
@@ -146,9 +162,11 @@ export function AudioInput({
         file: normalized,
         url,
         durationSeconds: result.durationSeconds,
+        path: result.path,
       });
       setCandidate(null);
-      onAudioReady(normalized);
+      if (ready?.path) void removeCloudAudio(ready.path).catch(() => {});
+      onAudioReady(normalized, result.path);
     } catch (failure) {
       if (operation !== current.operation || abort.signal.aborted) return;
       setError(
@@ -312,8 +330,12 @@ export function AudioInput({
           ))}
         </fieldset>
       </div>
-      <div className="capture-surface m-4 flex min-h-64 flex-col items-center justify-center rounded-xl border border-dashed border-teal-200/70 px-4 py-7 text-center sm:m-5">
-        <span className="microphone-ring mb-5 flex size-14 items-center justify-center rounded-full border border-teal-100 bg-white text-teal-700">
+      <div
+        className={`capture-surface m-4 flex flex-col items-center justify-center rounded-xl border border-dashed border-teal-200/70 px-4 text-center sm:m-5 ${ready && !busy ? "py-4" : "min-h-64 py-7"}`}
+      >
+        <span
+          className={`microphone-ring mb-5 flex size-14 items-center justify-center rounded-full border border-teal-100 bg-white text-teal-700 ${ready && !busy ? "hidden" : ""} ${phase === "recording" ? "recording-pulse" : ""}`}
+        >
           {mode === "record" ? (
             <Mic aria-hidden="true" size={24} strokeWidth={1.7} />
           ) : (

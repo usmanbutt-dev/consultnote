@@ -9,6 +9,7 @@ import { transcriptSchema } from "@/lib/consultation";
 const transcript = transcriptSchema.parse(fixture);
 
 vi.mock("@/lib/ai", () => ({ transcribeAudio: vi.fn() }));
+vi.mock("server-only", () => ({}));
 beforeEach(() => {
   vi.mocked(transcribeAudio).mockReset();
 });
@@ -31,6 +32,7 @@ it("validates the actual audio before asking Gemini", async () => {
       durationSeconds: 1,
       bytes: expect.any(Uint8Array),
     }),
+    "auto",
   );
 });
 

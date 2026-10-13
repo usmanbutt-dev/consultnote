@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileTypeFromBuffer } from "file-type";
 import { ApiError, readBoundedBody } from "./http";
+import ffprobe from "ffprobe-static";
 
 export type ValidatedAudio = {
   bytes: Uint8Array;
@@ -37,7 +38,7 @@ function probe(
   args.push("-show_entries", entries, file);
   return new Promise((resolve, reject) => {
     execFile(
-      "ffprobe",
+      ffprobe.path,
       args,
       {
         timeout: 15_000,
@@ -163,7 +164,18 @@ export async function readAudioRequest(
       413,
     );
   }
-  const bytes = new Uint8Array(await file.arrayBuffer());
+  return validateAudioBytes(new Uint8Array(await file.arrayBuffer()));
+}
+
+export async function validateAudioBytes(
+  bytes: Uint8Array,
+): Promise<ValidatedAudio> {
+  if (!bytes.length || bytes.length > MAX_FILE_BYTES)
+    throw new ApiError(
+      "AUDIO_TOO_LARGE",
+      "Choose nonempty audio smaller than 10 MiB.",
+      413,
+    );
   let mimeType: string | undefined;
   try {
     // Bound signature inspection too; ffprobe verifies the actual file afterward.

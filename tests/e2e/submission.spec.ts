@@ -43,7 +43,7 @@ async function transcribe(page: import("@playwright/test").Page) {
     page.getByLabel("Transcript segment 1", { exact: true }),
   ).toBeVisible();
 }
-for (const field of ["Discussion note 1", "Transcript segment 1"]) {
+for (const field of ["History note 1", "Transcript segment 1"]) {
   test(`protects a focused ${field} edit before blur`, async ({
     page,
     request,
@@ -62,6 +62,10 @@ for (const field of ["Discussion note 1", "Transcript segment 1"]) {
       await expect(
         page.getByRole("button", { name: "Export Markdown", exact: true }),
       ).toBeEnabled();
+      if (field.startsWith("Transcript"))
+        await page
+          .getByRole("button", { name: "Transcript", exact: true })
+          .click();
       const editor = page.getByLabel(field, { exact: true });
       await editor.fill("Pending wording still being edited.");
       await expect(editor).toBeFocused();
@@ -124,11 +128,11 @@ test("generates editable evidence-linked notes and confirms before invalidating 
   await page
     .getByRole("button", { name: "Generate notes", exact: true })
     .click();
-  await expect(
-    page.getByLabel("Discussion note 1", { exact: true }),
-  ).toHaveValue(notes.sections[0].items[0].text);
+  await expect(page.getByLabel("History note 1", { exact: true })).toHaveValue(
+    notes.sections[0].items[0].text,
+  );
   await page
-    .getByLabel("Discussion note 1", { exact: true })
+    .getByLabel("History note 1", { exact: true })
     .fill("Reviewed headache discussion.");
   await page
     .getByRole("button", { name: "Source segment 2", exact: true })
@@ -145,16 +149,16 @@ test("generates editable evidence-linked notes and confirms before invalidating 
   await expect(
     page.getByLabel("Transcript segment 2", { exact: true }),
   ).toHaveValue(transcript.segments[1].text);
-  await expect(
-    page.getByLabel("Discussion note 1", { exact: true }),
-  ).toHaveValue("Reviewed headache discussion.");
+  await expect(page.getByLabel("History note 1", { exact: true })).toHaveValue(
+    "Reviewed headache discussion.",
+  );
   page.once("dialog", (dialog) => dialog.accept());
   await page
     .getByLabel("Speaker 1 role", { exact: true })
     .selectOption("unknown");
-  await expect(
-    page.getByLabel("Discussion note 1", { exact: true }),
-  ).toHaveCount(0);
+  await expect(page.getByLabel("History note 1", { exact: true })).toHaveCount(
+    0,
+  );
   await expect(
     page.getByRole("button", { name: "Save consultation", exact: true }),
   ).toBeDisabled();
@@ -170,7 +174,7 @@ test("saves, reopens, renames and exports a consultation through real SQLite rou
     .getByRole("button", { name: "Generate notes", exact: true })
     .click();
   await expect(
-    page.getByLabel("Discussion note 1", { exact: true }),
+    page.getByLabel("History note 1", { exact: true }),
   ).toBeVisible();
   const saved = page.waitForResponse(
     (response) =>
@@ -219,7 +223,7 @@ test("saves, reopens, renames and exports a consultation through real SQLite rou
       .getByRole("button", { name: `${title} reviewed`, exact: true })
       .click();
     await expect(
-      page.getByLabel("Discussion note 1", { exact: true }),
+      page.getByLabel("History note 1", { exact: true }),
     ).toBeVisible();
   } finally {
     await request.delete(`/api/consultations/${record.id}`);
@@ -244,7 +248,7 @@ test("loads a clearly labeled sample without calling an AI API and preserves the
     page.getByText("Prepared fictional sample", { exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByLabel("Discussion note 1", { exact: true }),
+    page.getByLabel("History note 1", { exact: true }),
   ).toBeVisible();
   expect(providerCalls).toBe(0);
   await page
@@ -281,10 +285,10 @@ test("keeps notes and the draft after failed regeneration or saving", async ({
     .getByRole("button", { name: "Generate notes", exact: true })
     .click();
   await expect(
-    page.getByLabel("Discussion note 1", { exact: true }),
+    page.getByLabel("History note 1", { exact: true }),
   ).toBeVisible();
   await page
-    .getByLabel("Discussion note 1", { exact: true })
+    .getByLabel("History note 1", { exact: true })
     .fill("Keep my reviewed note.");
   await page
     .getByLabel("Consultation title", { exact: true })
@@ -307,9 +311,9 @@ test("keeps notes and the draft after failed regeneration or saving", async ({
   await expect(
     page.getByRole("alert").filter({ hasText: "Groq quota" }),
   ).toBeVisible();
-  await expect(
-    page.getByLabel("Discussion note 1", { exact: true }),
-  ).toHaveValue("Keep my reviewed note.");
+  await expect(page.getByLabel("History note 1", { exact: true })).toHaveValue(
+    "Keep my reviewed note.",
+  );
   await page.route("**/api/consultations", (route) =>
     route.request().method() === "POST"
       ? route.fulfill({
@@ -329,9 +333,9 @@ test("keeps notes and the draft after failed regeneration or saving", async ({
   await expect(
     page.getByRole("alert").filter({ hasText: "Storage unavailable" }),
   ).toBeVisible();
-  await expect(
-    page.getByLabel("Discussion note 1", { exact: true }),
-  ).toHaveValue("Keep my reviewed note.");
+  await expect(page.getByLabel("History note 1", { exact: true })).toHaveValue(
+    "Keep my reviewed note.",
+  );
 });
 
 test("ignores cancelled note generation and retains the reviewed transcript", async ({
@@ -371,9 +375,9 @@ test("ignores cancelled note generation and retains the reviewed transcript", as
   await page.getByRole("button", { name: "Cancel notes", exact: true }).click();
   release();
   await done;
-  await expect(
-    page.getByLabel("Discussion note 1", { exact: true }),
-  ).toHaveCount(0);
+  await expect(page.getByLabel("History note 1", { exact: true })).toHaveCount(
+    0,
+  );
   await expect(
     page.getByLabel("Transcript segment 1", { exact: true }),
   ).toHaveValue(transcript.segments[0].text);
@@ -392,7 +396,7 @@ test("sample notes and evidence navigation work on a narrow screen", async ({
   ).toBeVisible();
   await page.getByRole("button", { name: "Notes", exact: true }).click();
   await expect(
-    page.getByLabel("Discussion note 1", { exact: true }),
+    page.getByLabel("History note 1", { exact: true }),
   ).toBeVisible();
   await page
     .getByRole("button", { name: "Source segment 2", exact: true })
@@ -421,7 +425,7 @@ test("cannot replace the draft while a save response is pending", async ({
     .getByRole("button", { name: "Generate notes", exact: true })
     .click();
   await expect(
-    page.getByLabel("Discussion note 1", { exact: true }),
+    page.getByLabel("History note 1", { exact: true }),
   ).toBeVisible();
   let release!: () => void;
   const gate = new Promise<void>((resolve) => {

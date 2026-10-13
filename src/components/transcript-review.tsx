@@ -131,6 +131,7 @@ export function TranscriptReview({
                 defaultValue={segment.text}
                 disabled={disabled}
                 rows={3}
+                dir="auto"
                 className="w-full resize-y rounded-md border border-slate-200 bg-white p-2 text-xs leading-6 text-slate-700 disabled:opacity-60"
                 onInput={onPendingEdit}
                 onBlur={(event) => {

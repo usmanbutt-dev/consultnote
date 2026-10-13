@@ -19,7 +19,7 @@ export function validateConsultationId(id: string): void {
   if (!z.uuid().safeParse(id).success)
     throw new ApiError("INVALID_INPUT", "Choose a valid consultation ID.", 400);
 }
-function validateInput(input: ConsultationInput): ConsultationInput {
+export function validateInput(input: ConsultationInput): ConsultationInput {
   const parsed = consultationInputSchema.safeParse(input);
   if (!parsed.success)
     throw new ApiError(

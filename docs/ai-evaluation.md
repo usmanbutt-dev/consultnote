@@ -2,7 +2,21 @@
 
 Status: The AssemblyAI/Groq workflow completed three fictional live evaluations and the user's approved five-minute MP3 on 2026-10-13. Transcript, role and note review remains necessary. Earlier Gemini investigations are retained below as historical records.
 
-## Current submission evaluation — 2026-10-13
+## Clinician workflow and language evaluation — 2026-10-13
+
+The current workflow uses `notes-v4`, with separate recording and note language controls. New notes use clinician chart wording such as “Discussed,” “Recommended,” and “Patient reports,” with corresponding Urdu phrasing. Existing saved notes keep their original wording and provenance until explicitly regenerated. Section keys remain compatible with old records; their displayed labels are History, Discussion, Plan, Follow-up, and Preferences and barriers.
+
+Live Groq requests reused the previously approved MP3 transcript to generate English and Urdu notes. Both responses passed schema, source-reference and digest validation. The Urdu response contained nine items across five sections and used clinician-oriented phrasing. No additional audio was uploaded for this evaluation.
+
+Manual review found an unsupported timing detail in the Urdu follow-up: it said Tuesday morning, while source segment 33 only proposed a phone conversation early the following week, “say Tuesday.” Remove “morning” during review. A valid citation does not establish that every part of a note is supported. No clinical accuracy percentage or multilingual transcription accuracy is claimed.
+
+Urdu and English/Urdu recording requests select Universal-2; mixed requests enable code switching. AssemblyAI documents [multilingual model support](https://www.assemblyai.com/docs/getting-started/models) and [code switching](https://support.assemblyai.com/articles/2252616939-how-does-the-api-handle-files-that-contain-spoken-audio-in-multiple-languages). Recognition and speaker separation still need representative Urdu and mixed-language recordings; output performance varies by language pair.
+
+Supabase and Vercel integration is prepared. Local tests exercise verified-owner guards, owned audio paths, bounded uploads, job idempotency and terminal cleanup. Browser checks use controlled Supabase/provider boundaries with the actual workspace code. Installed database policies, two real accounts, auth email delivery and hosted Linux execution remain pending the user's Supabase configuration.
+
+Verification for this change: 161 unit tests passed. The configured browser run passed 39 cases and skipped its missing-key case, which passed separately on the final production bundle with empty provider keys; all 40 browser cases were exercised. Lint, TypeScript and the optimized build passed. Production save/restart/reopen/delete checks used an isolated QA database. Hosted mode with missing Supabase configuration rejected private API requests and redirected to setup/login. The original local AI draft remains intact with 35 transcript turns, 13 notes and its `notes-v3` provenance. Desktop and mobile layouts were visually reviewed.
+
+## Earlier submission evaluation — 2026-10-13
 
 Provider implementation: `2df9596`, followed by the final reviewed fixes on `feat/submission-workflow`. Native HTTPS requests use AssemblyAI `/v2/upload` and `/v2/transcript`, then Groq `/openai/v1/chat/completions`. AssemblyAI selected `universal-3-pro`; Groq used `openai/gpt-oss-120b`, `roles-v1` and `notes-v3`. The original Gemini adapter remains available through explicit configuration.
 

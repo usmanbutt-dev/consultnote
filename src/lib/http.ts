@@ -1,4 +1,7 @@
 export type ApiErrorCode =
+  | "UNAUTHORIZED"
+  | "CONFIGURATION_REQUIRED"
+  | "PROCESSING_LIMIT"
   | "INVALID_INPUT"
   | "NOT_FOUND"
   | "AUDIO_TOO_LARGE"
@@ -7,6 +10,7 @@ export type ApiErrorCode =
   | "INVALID_AI_OUTPUT"
   | "AI_AUTH_FAILED"
   | "AI_UNAVAILABLE"
+  | "AI_PROCESSING_FAILED"
   | "AI_QUOTA_EXCEEDED"
   | "AI_TIMEOUT"
   | "STORAGE_FAILED"

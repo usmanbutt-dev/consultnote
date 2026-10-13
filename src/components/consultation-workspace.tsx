@@ -32,6 +32,12 @@ import {
 import type { TranscriptionResult } from "@/lib/gemini";
 import { toMarkdown } from "@/lib/markdown";
 import { NOTES_PROMPT_VERSION } from "@/lib/prompts";
+import {
+  notesLanguageSchema,
+  type AudioLanguage,
+  type NotesLanguage,
+} from "@/lib/languages";
+import { removeCloudAudio, uploadCloudAudio } from "@/lib/cloud-client";
 
 async function apiRequest(url: string, init?: RequestInit): Promise<unknown> {
   let response: Response;
@@ -52,12 +58,17 @@ async function apiRequest(url: string, init?: RequestInit): Promise<unknown> {
   }
   if (!response.ok) {
     const parsed = z
-      .object({ error: z.object({ message: z.string() }) })
+      .object({
+        error: z.object({ message: z.string(), code: z.string().optional() }),
+      })
       .safeParse(data);
-    throw new Error(
-      parsed.success
-        ? parsed.data.error.message
-        : "The request failed. Please retry.",
+    throw Object.assign(
+      new Error(
+        parsed.success
+          ? parsed.data.error.message
+          : "The request failed. Please retry.",
+      ),
+      { applicationFailure: parsed.success && Boolean(parsed.data.error.code) },
     );
   }
   return data;
@@ -71,9 +82,19 @@ export function ConsultationWorkspace({
     transcriptionConfigured: boolean;
     notesConfigured: boolean;
     notesModel: string;
+    cloud?: boolean;
   };
 }) {
   const [audio, setAudio] = useState<File | null>(null);
+  const [audioPath, setAudioPath] = useState<string | undefined>();
+  const cloudJob = useRef<{
+    id: string;
+    path: string;
+    language: AudioLanguage;
+    submission?: Promise<unknown>;
+  } | null>(null);
+  const [audioLanguage, setAudioLanguage] = useState<AudioLanguage>("auto");
+  const [notesLanguage, setNotesLanguage] = useState<NotesLanguage>("en");
   const [inputVersion, setInputVersion] = useState(0);
   const [panel, setPanel] = useState<"transcript" | "notes">("transcript");
   const [audioBusy, setAudioBusy] = useState(false);
@@ -167,6 +188,18 @@ export function ConsultationWorkspace({
     setNotesError("");
   }
 
+  function discardCloudJob() {
+    const previousJob = cloudJob.current;
+    cloudJob.current = null;
+    if (previousJob)
+      void Promise.resolve(previousJob.submission)
+        .catch(() => {})
+        .then(() =>
+          fetch(`/api/transcribe/jobs/${previousJob.id}`, { method: "DELETE" }),
+        )
+        .catch(() => {});
+  }
+
   function beforeReplace() {
     if (saving) return false;
     if (
@@ -194,9 +227,11 @@ export function ConsultationWorkspace({
     setTitle("Untitled consultation");
   }
 
-  function acceptAudio(file: File) {
+  function acceptAudio(file: File, path?: string) {
     cancelTranscription();
+    discardCloudJob();
     setAudio(file);
+    setAudioPath(path);
     clearTranscript();
   }
 
@@ -219,11 +254,14 @@ export function ConsultationWorkspace({
     const body = new FormData();
     body.append("audio", audio);
     try {
-      const data = await apiRequest("/api/transcribe", {
-        method: "POST",
-        body,
-        signal: active.controller.signal,
-      });
+      const data = configuration.cloud
+        ? await transcribeCloud(audio, active.controller.signal)
+        : await apiRequest("/api/transcribe", {
+            method: "POST",
+            headers: { "x-audio-language": audioLanguage },
+            body,
+            signal: active.controller.signal,
+          });
       if (generation !== active.generation) return;
       const parsed = z
         .object({
@@ -263,6 +301,87 @@ export function ConsultationWorkspace({
         active.busy = false;
         setTranscribing(false);
       }
+    }
+  }
+
+  async function transcribeCloud(
+    file: File,
+    signal: AbortSignal,
+  ): Promise<unknown> {
+    let job = cloudJob.current;
+    let path = audioPath;
+    if (job && job.language !== audioLanguage) {
+      await Promise.resolve(job.submission).catch(() => {});
+      await fetch(`/api/transcribe/jobs/${job.id}`, { method: "DELETE" });
+      signal.throwIfAborted();
+      cloudJob.current = job = null;
+      path = undefined;
+    }
+    if (!job) {
+      if (!path) path = (await uploadCloudAudio(file, signal)).path;
+      signal.throwIfAborted();
+      setAudioPath(path);
+      job = { id: crypto.randomUUID(), path, language: audioLanguage };
+      cloudJob.current = job;
+    }
+    if (!job.submission) {
+      job.submission = apiRequest("/api/transcribe/jobs", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id: job.id, path, language: job.language }),
+      });
+      try {
+        await job.submission;
+      } catch (error) {
+        if (cloudJob.current === job) {
+          job.submission = undefined;
+          if (
+            error instanceof Error &&
+            "applicationFailure" in error &&
+            error.applicationFailure === true
+          ) {
+            cloudJob.current = null;
+            setAudioPath(undefined);
+            void removeCloudAudio(job.path).catch(() => {});
+          }
+        }
+        throw error;
+      }
+    } else if (job.submission) await job.submission;
+    while (true) {
+      signal.throwIfAborted();
+      const status = z
+        .object({
+          status: z.string(),
+          result: z.unknown().optional(),
+          failure: z.object({ message: z.string() }).nullable().optional(),
+        })
+        .parse(await apiRequest(`/api/transcribe/jobs/${job.id}`, { signal }));
+      signal.throwIfAborted();
+      if (status.status === "completed") {
+        cloudJob.current = null;
+        setAudioPath(undefined);
+        return status.result;
+      }
+      if (["failed", "cancelled"].includes(status.status)) {
+        cloudJob.current = null;
+        setAudioPath(undefined);
+        throw new Error(
+          status.failure?.message ??
+            "Transcription failed. Upload the recording again.",
+        );
+      }
+      await new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(() => {
+          signal.removeEventListener("abort", abort);
+          resolve();
+        }, 2000);
+        const abort = () => {
+          clearTimeout(timer);
+          reject(new DOMException("Aborted", "AbortError"));
+        };
+        signal.addEventListener("abort", abort, { once: true });
+      });
     }
   }
 
@@ -316,6 +435,7 @@ export function ConsultationWorkspace({
         body: JSON.stringify({
           transcript: transcription.transcript,
           assignments,
+          notesLanguage,
         }),
         signal: controller.signal,
       });
@@ -338,7 +458,7 @@ export function ConsultationWorkspace({
       setNotesResult(parsed.data);
       setNotesProvenance({
         model: `${transcription.model} | notes:Groq:${configuration.notesModel}`,
-        promptVersion: `${transcription.promptVersion} | notes:${NOTES_PROMPT_VERSION}`,
+        promptVersion: `${transcription.promptVersion} | notes:${NOTES_PROMPT_VERSION}/${notesLanguage}`,
       });
       setDirty(true);
     } catch (error) {
@@ -403,7 +523,9 @@ export function ConsultationWorkspace({
     input: ConsultationInput,
     record: ConsultationRecord | null,
   ) {
+    discardCloudJob();
     setAudio(null);
+    setAudioPath(undefined);
     setInputVersion((v) => v + 1);
     setAudioBusy(false);
     setTranscription({
@@ -417,10 +539,14 @@ export function ConsultationWorkspace({
       model: input.model,
       promptVersion: input.promptVersion,
     });
+    const savedLanguage = notesLanguageSchema.safeParse(
+      input.promptVersion.split(" | notes:")[1]?.split("/")[1],
+    );
+    setNotesLanguage(savedLanguage.success ? savedLanguage.data : "en");
     setTitle(input.title);
     setSavedRecord(record);
     setDirty(!record);
-    setPanel("transcript");
+    setPanel("notes");
     setStorageError("");
   }
   async function openConsultation(id: string) {
@@ -524,7 +650,9 @@ export function ConsultationWorkspace({
 
   function newConsultation() {
     if (!beforeReplace()) return;
+    discardCloudJob();
     setAudio(null);
+    setAudioPath(undefined);
     setAudioBusy(false);
     clearTranscript();
     setInputVersion((version) => version + 1);
@@ -596,7 +724,9 @@ export function ConsultationWorkspace({
           </span>
           <div>
             <p className="text-xs font-semibold">Personal workspace</p>
-            <p className="mt-1 text-[11px] text-slate-500">Local preview</p>
+            <p className="mt-1 text-[11px] text-slate-500">
+              {configuration.cloud ? "Cloud workspace" : "Local preview"}
+            </p>
           </div>
         </div>
       </aside>
@@ -617,6 +747,30 @@ export function ConsultationWorkspace({
             />
             <span className="font-medium text-slate-700">New consultation</span>
           </div>
+          {configuration.cloud && (
+            <button
+              onClick={async () => {
+                if (
+                  dirty &&
+                  !window.confirm(
+                    "Sign out? Unsaved changes will be discarded.",
+                  )
+                )
+                  return;
+                try {
+                  await apiRequest("/api/auth/signout", { method: "POST" });
+                  setDirty(false);
+                  window.location.assign("/login");
+                } catch {
+                  setStorageError("Sign-out failed. Please try again.");
+                }
+              }}
+              disabled={busy}
+              className="min-h-11 px-3 text-xs font-semibold text-slate-600"
+            >
+              Sign out
+            </button>
+          )}
           <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-[10px] font-semibold text-amber-900">
             Interview demo
           </span>
@@ -625,7 +779,7 @@ export function ConsultationWorkspace({
         <main
           id="workspace"
           tabIndex={-1}
-          className="mx-auto max-w-7xl px-5 py-7 sm:px-9 sm:py-9"
+          className="mx-auto max-w-4xl px-5 py-7 sm:px-9 sm:py-9"
         >
           <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
             <div>
@@ -740,22 +894,31 @@ export function ConsultationWorkspace({
             aria-label="Consultation steps"
             className="my-7 flex items-start gap-2 rounded-xl border border-slate-200/70 bg-white/60 p-4 sm:gap-5"
           >
-            {["Capture audio", "Review transcript", "Create notes"].map(
+            {["Capture audio", "Review transcript", "Review notes", "Save"].map(
               (step, index) => (
                 <li
                   key={step}
                   aria-current={
-                    index === (transcription ? 1 : 0) ? "step" : undefined
+                    index ===
+                    (savedRecord && !dirty
+                      ? 3
+                      : notesResult
+                        ? 2
+                        : transcription
+                          ? 1
+                          : 0)
+                      ? "step"
+                      : undefined
                   }
                   className="flex min-w-0 flex-1 flex-col items-center gap-2 text-center sm:flex-row sm:text-left"
                 >
                   <span
-                    className={`flex size-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${index === (transcription ? 1 : 0) ? "bg-teal-700 text-white" : "bg-slate-100 text-slate-500"}`}
+                    className={`flex size-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${index === (savedRecord && !dirty ? 3 : notesResult ? 2 : transcription ? 1 : 0) ? "bg-teal-700 text-white" : "bg-slate-100 text-slate-500"}`}
                   >
                     0{index + 1}
                   </span>
                   <span
-                    className={`text-[11px] sm:text-xs ${index === (transcription ? 1 : 0) ? "font-semibold text-teal-800" : "text-slate-500"}`}
+                    className={`text-[11px] sm:text-xs ${index === (savedRecord && !dirty ? 3 : notesResult ? 2 : transcription ? 1 : 0) ? "font-semibold text-teal-800" : "text-slate-500"}`}
                   >
                     {step}
                   </span>
@@ -764,11 +927,31 @@ export function ConsultationWorkspace({
             )}
           </ol>
 
+          <div className="mb-3 flex items-center gap-3 text-xs text-slate-600">
+            <label htmlFor="recording-language">Recording language</label>
+            <select
+              id="recording-language"
+              value={audioLanguage}
+              disabled={busy}
+              onChange={(event) =>
+                setAudioLanguage(event.target.value as AudioLanguage)
+              }
+              className="min-h-11 rounded-lg border border-slate-200 bg-white px-3"
+            >
+              <option value="auto">Detect automatically</option>
+              <option value="en">English</option>
+              <option value="ur">Urdu</option>
+              <option value="en-ur">English + Urdu</option>
+            </select>
+          </div>
           <AudioInput
+            cloud={configuration.cloud}
             key={inputVersion}
             onAudioReady={acceptAudio}
             onReset={() => {
+              discardCloudJob();
               setAudio(null);
+              setAudioPath(undefined);
               clearTranscript();
             }}
             onBeforeReplace={beforeReplace}
@@ -778,7 +961,7 @@ export function ConsultationWorkspace({
           <div
             role="group"
             aria-label="Workspace panels"
-            className="mt-6 flex gap-1 rounded-lg border border-slate-200 bg-white p-1 lg:hidden"
+            className="mt-6 flex gap-1 rounded-lg border border-slate-200 bg-white p-1"
           >
             <button
               aria-pressed={panel === "transcript"}
@@ -795,10 +978,10 @@ export function ConsultationWorkspace({
               Notes
             </button>
           </div>
-          <div className="mt-4 grid gap-5 lg:mt-6 lg:grid-cols-2">
+          <div className="mt-4 grid gap-5">
             <section
               aria-labelledby="transcript-heading"
-              className={`soft-panel min-h-72 flex-col ${panel === "transcript" ? "flex" : "hidden"} lg:flex`}
+              className={`soft-panel animate-enter min-h-72 flex-col ${panel === "transcript" ? "flex" : "hidden"}`}
             >
               <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-4">
                 <MessageSquareText
@@ -902,13 +1085,26 @@ export function ConsultationWorkspace({
                   </p>
                 </div>
               )}
-              <p className="border-t border-slate-100 px-5 py-3 text-[10px] text-slate-500">
-                Review the words and confirm who is speaking.
-              </p>
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-5 py-4">
+                <p className="text-xs text-slate-500">
+                  Review the words and confirm who is speaking.
+                </p>
+                {transcription && (
+                  <button
+                    onClick={() =>
+                      notesResult ? setPanel("notes") : void createNotes()
+                    }
+                    disabled={busy}
+                    className="min-h-11 rounded-lg bg-teal-700 px-4 text-xs font-semibold text-white disabled:opacity-50"
+                  >
+                    {notesResult ? "Review notes" : "Generate notes"}
+                  </button>
+                )}
+              </div>
             </section>
             <section
               aria-labelledby="notes-heading"
-              className={`soft-panel min-h-72 flex-col ${panel === "notes" ? "flex" : "hidden"} lg:flex`}
+              className={`soft-panel animate-enter min-h-72 flex-col ${panel === "notes" ? "flex" : "hidden"}`}
             >
               <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-4">
                 <FileText
@@ -924,6 +1120,22 @@ export function ConsultationWorkspace({
                 </span>
               </div>
               <div className="border-b border-slate-100 px-5 py-4">
+                <div className="mb-3 flex items-center gap-3 text-xs text-slate-600">
+                  <label htmlFor="notes-language">Notes language</label>
+                  <select
+                    id="notes-language"
+                    value={notesLanguage}
+                    disabled={busy}
+                    onChange={(event) =>
+                      setNotesLanguage(event.target.value as NotesLanguage)
+                    }
+                    className="min-h-11 rounded-lg border border-slate-200 bg-white px-3"
+                  >
+                    <option value="en">English</option>
+                    <option value="ur">Urdu</option>
+                    <option value="original">Conversation language</option>
+                  </select>
+                </div>
                 <div className="flex flex-wrap items-center gap-3">
                   <button
                     onClick={() => void createNotes()}

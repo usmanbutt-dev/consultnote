@@ -8,6 +8,8 @@ import {
 } from "./gemini";
 import { ApiError } from "./http";
 import { withProviderDeadline } from "./provider-http";
+import type { AudioLanguage } from "./languages";
+import type { Transcript } from "./consultation";
 
 export function processingConfiguration() {
   const provider = process.env.TRANSCRIPTION_PROVIDER?.trim() || "assemblyai";
@@ -25,6 +27,7 @@ export function processingConfiguration() {
 
 export async function transcribeAudio(
   audio: ValidatedAudio,
+  language: AudioLanguage = "auto",
 ): Promise<TranscriptionResult> {
   const { provider } = processingConfiguration();
   if (provider === "gemini") return transcribeWithGemini(audio);
@@ -35,35 +38,39 @@ export async function transcribeAudio(
       502,
     );
   return withProviderDeadline("Transcription", async (signal) => {
-    const result = await transcribeWithAssemblyAI(audio, signal);
-    try {
-      const transcript = await withProviderDeadline(
-        "Role suggestions",
-        (roleSignal) =>
-          suggestRoles(
-            result.transcript,
-            AbortSignal.any([signal, roleSignal]),
-          ),
-        15000,
-      );
-      return {
-        transcript,
-        model: `${result.model}; Groq:${groqModel()}`,
-        promptVersion: "assemblyai-v1/roles-v1",
-      };
-    } catch {
-      return {
-        transcript: {
-          ...result.transcript,
-          speakers: result.transcript.speakers.map((s) => ({
-            ...s,
-            reason:
-              "Role suggestions unavailable. Select this speaker's role manually.",
-          })),
-        },
-        model: result.model,
-        promptVersion: "assemblyai-v1",
-      };
-    }
+    const result = await transcribeWithAssemblyAI(audio, signal, language);
+    return addRoleSuggestions(result, signal);
   });
+}
+
+export async function addRoleSuggestions(
+  result: { transcript: Transcript; model: string },
+  signal: AbortSignal,
+): Promise<TranscriptionResult> {
+  try {
+    const transcript = await withProviderDeadline(
+      "Role suggestions",
+      (roleSignal) =>
+        suggestRoles(result.transcript, AbortSignal.any([signal, roleSignal])),
+      15000,
+    );
+    return {
+      transcript,
+      model: `${result.model}; Groq:${groqModel()}`,
+      promptVersion: "assemblyai-v1/roles-v1",
+    };
+  } catch {
+    return {
+      transcript: {
+        ...result.transcript,
+        speakers: result.transcript.speakers.map((s) => ({
+          ...s,
+          reason:
+            "Role suggestions unavailable. Select this speaker's role manually.",
+        })),
+      },
+      model: result.model,
+      promptVersion: "assemblyai-v1",
+    };
+  }
 }

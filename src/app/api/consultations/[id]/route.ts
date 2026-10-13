@@ -2,8 +2,8 @@ import {
   getConsultation,
   updateConsultation,
   deleteConsultation,
-  validateConsultationId,
-} from "@/lib/db";
+} from "@/lib/storage";
+import { validateConsultationId } from "@/lib/db";
 import { consultationInputSchema } from "@/lib/consultation";
 import { ApiError, errorResponse, readJsonRequest } from "@/lib/http";
 export const runtime = "nodejs";
@@ -17,7 +17,7 @@ export async function GET(
 ): Promise<Response> {
   try {
     const { id } = await context.params;
-    const record = getConsultation(id);
+    const record = await getConsultation(id);
     if (!record) throw missing();
     return Response.json(record);
   } catch (error) {
@@ -40,7 +40,7 @@ export async function PATCH(
         "Review the consultation before saving.",
         400,
       );
-    const record = updateConsultation(id, parsed.data);
+    const record = await updateConsultation(id, parsed.data);
     if (!record) throw missing();
     return Response.json(record);
   } catch (error) {
@@ -53,7 +53,7 @@ export async function DELETE(
 ): Promise<Response> {
   try {
     const { id } = await context.params;
-    if (!deleteConsultation(id)) throw missing();
+    if (!(await deleteConsultation(id))) throw missing();
     return new Response(null, { status: 204 });
   } catch (error) {
     return errorResponse(error);

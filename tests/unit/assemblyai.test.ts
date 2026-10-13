@@ -1,5 +1,9 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { transcribeWithAssemblyAI } from "@/lib/assemblyai";
+import {
+  transcribeWithAssemblyAI,
+  submitAssemblyJob,
+  pollAssemblyJob,
+} from "@/lib/assemblyai";
 
 vi.mock("server-only", () => ({}));
 const audio = {
@@ -93,6 +97,33 @@ it("polls an existing queued job without submitting another generation", async (
     ),
   ).toHaveLength(1);
 });
+it.each(["ur", "en-ur"] as const)(
+  "uses the multilingual model for %s without translating source speech",
+  async (language) => {
+    const fetch = responses(
+      { upload_url: "https://cdn.assemblyai.com/upload/test" },
+      { id: "job-1" },
+      {
+        ...completed,
+        text: "مجھے بخار ہے",
+        utterances: [
+          { speaker: "A", start: 0, end: 1000, text: "مجھے بخار ہے" },
+        ],
+      },
+    );
+    const result = await transcribeWithAssemblyAI(
+      audio,
+      new AbortController().signal,
+      language,
+    );
+    const sent = JSON.parse(fetch.mock.calls[1][1].body);
+    expect(sent.speech_models).toEqual(["universal-2"]);
+    if (language === "ur") expect(sent.language_code).toBe("ur");
+    else
+      expect(sent.language_detection_options).toEqual({ code_switching: true });
+    expect(result.transcript.segments[0].text).toBe("مجھے بخار ہے");
+  },
+);
 it.each([401, 403, 429, 503])(
   "maps HTTP %i without leaking credentials or provider bodies",
   async (status) => {
@@ -138,4 +169,29 @@ it("distinguishes silence from malformed diarization", async () => {
   await expect(
     transcribeWithAssemblyAI(audio, new AbortController().signal),
   ).rejects.toMatchObject({ code: "NO_SPEECH" });
+});
+it("cloud submission creates one job from a validated private URL", async () => {
+  const fetch = responses({ id: "cloud-job" });
+  expect(
+    await submitAssemblyJob(
+      "https://example.supabase.co/private/audio",
+      new AbortController().signal,
+      "en-ur",
+    ),
+  ).toBe("cloud-job");
+  expect(fetch).toHaveBeenCalledTimes(1);
+  expect(JSON.parse(fetch.mock.calls[0][1].body)).toMatchObject({
+    audio_url: "https://example.supabase.co/private/audio",
+    speech_models: ["universal-2"],
+  });
+});
+it("cloud polling returns pending immediately without resubmission", async () => {
+  const fetch = responses({ status: "processing", text: null });
+  expect(
+    await pollAssemblyJob("cloud-job", 30, new AbortController().signal),
+  ).toBeNull();
+  expect(fetch).toHaveBeenCalledTimes(1);
+  expect(fetch.mock.calls[0][0]).toBe(
+    "https://api.assemblyai.com/v2/transcript/cloud-job",
+  );
 });

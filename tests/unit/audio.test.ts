@@ -49,7 +49,7 @@ describe("audio upload validation", () => {
       durationSeconds: 1,
     });
     expect(probe).toHaveBeenCalledWith(
-      "ffprobe",
+      expect.stringMatching(/ffprobe(?:\.exe)?$/),
       expect.any(Array),
       expect.objectContaining({
         timeout: 15000,

@@ -106,7 +106,9 @@ test("preserves valid audio after a bad replacement and revokes replaced preview
 
 test("records actual MediaRecorder WebM and releases microphone tracks", async ({
   page,
+  context,
 }) => {
+  await context.grantPermissions(["microphone"]);
   await page.addInitScript(() => {
     const getUserMedia = navigator.mediaDevices.getUserMedia.bind(
       navigator.mediaDevices,

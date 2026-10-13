@@ -17,6 +17,7 @@ import {
   withProviderDeadline,
 } from "./provider-http";
 import { NOTES_PROMPT_VERSION, notesInstructions } from "./prompts";
+import type { NotesLanguage } from "./languages";
 
 export { NOTES_PROMPT_VERSION };
 export function groqModel(): string {
@@ -130,6 +131,7 @@ export async function suggestRoles(
 export async function generateNotes(
   transcript: Transcript,
   assignments: SpeakerAssignment[],
+  notesLanguage: NotesLanguage = "en",
 ): Promise<NotesResult> {
   const input = reviewedInputSchema.safeParse({ transcript, assignments });
   if (!input.success)
@@ -142,6 +144,7 @@ export async function generateNotes(
     const output = await completeJson(
       notesInstructions(),
       {
+        notesLanguage,
         assignments: input.data.assignments,
         segments: input.data.transcript.segments.map(
           ({ id, speakerId, text }) => ({ id, speakerId, text }),

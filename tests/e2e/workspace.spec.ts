@@ -1,5 +1,31 @@
 import { expect, test } from "@playwright/test";
 
+test("guides review through one panel and offers English/Urdu choices", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page
+    .getByLabel("Recording language", { exact: true })
+    .selectOption("en-ur");
+  await expect(
+    page.getByLabel("Recording language", { exact: true }),
+  ).toHaveValue("en-ur");
+  await page
+    .getByRole("button", { name: "Load sample consultation", exact: true })
+    .click();
+  await expect(
+    page.getByRole("list", { name: "Consultation steps" }),
+  ).toContainText("Save");
+  await page.getByRole("button", { name: "Notes", exact: true }).click();
+  await page.getByLabel("Notes language", { exact: true }).selectOption("ur");
+  await expect(
+    page.getByRole("heading", { name: "Conversation transcript", exact: true }),
+  ).toBeHidden();
+  await expect(
+    page.getByLabel("History note 1", { exact: true }),
+  ).toBeVisible();
+});
+
 test("opens an honest empty workspace without an AI key", async ({ page }) => {
   await page.route("**/api/consultations", (route) =>
     route.fulfill({ json: { consultations: [] } }),

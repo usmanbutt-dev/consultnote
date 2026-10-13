@@ -3,13 +3,7 @@ import {
   type ConsultationRecord,
 } from "./consultation";
 
-const names = {
-  discussion: "Discussion",
-  explanations: "Explanations",
-  decisions: "Decisions",
-  followUp: "Follow-up",
-  context: "Context",
-};
+import { noteSectionTitles as names } from "./languages";
 function escape(text: string): string {
   return text.replace(/[\\`*_{}[\]<>#]/g, "\\$&");
 }

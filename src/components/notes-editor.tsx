@@ -5,13 +5,7 @@ import {
   type NotesResult,
   type Transcript,
 } from "@/lib/consultation";
-const titles = {
-  discussion: "Discussion",
-  explanations: "Explanations",
-  decisions: "Decisions",
-  followUp: "Follow-up",
-  context: "Context",
-};
+import { noteSectionTitles as titles } from "@/lib/languages";
 export function NotesEditor({
   result,
   transcript,
@@ -63,6 +57,7 @@ export function NotesEditor({
                   key={item.text}
                   id={`note-${section.kind}-${index}`}
                   defaultValue={item.text}
+                  dir="auto"
                   rows={3}
                   disabled={disabled}
                   className="w-full resize-y rounded-md border border-slate-200 bg-white p-2 text-xs leading-6 text-slate-700 disabled:opacity-60"

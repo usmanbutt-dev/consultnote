@@ -60,6 +60,16 @@ it("rejects notes whose evidence is outside the reviewed transcript", async () =
     code: "INVALID_AI_OUTPUT",
   });
 });
+it.each(["en", "ur", "original"] as const)(
+  "passes the requested %s note language without changing evidence",
+  async (language) => {
+    const fetch = completion(notes);
+    const result = await generateNotes(transcript, assignments, language);
+    const sent = JSON.parse(fetch.mock.calls[0][1]!.body as string);
+    expect(JSON.parse(sent.messages[1].content).notesLanguage).toBe(language);
+    expect(result.sourceDigest).toBe(sourceDigest(transcript, assignments));
+  },
+);
 it.each([
   {},
   { sections: [] },
