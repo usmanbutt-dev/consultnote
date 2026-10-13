@@ -2,7 +2,7 @@
 
 AI-assisted notes for doctor-patient conversations, with a source transcript and human review.
 
-**Status:** Milestones 1–3 implemented: audio capture, Gemini transcription and speaker review. Live Gemini output quality remains unverified until a key is configured.
+**Status:** Milestones 1–3 implemented: audio capture, Gemini transcription and speaker review. The first live check accepted the configured key but generation returned HTTP 503; live output quality remains unverified.
 
 ConsultNote is a single-user interview project for documenting doctor-patient conversations. Record or upload audio, validate and play it back, then request a speaker-labelled Gemini transcript. Correct the words and suggested doctor/patient/unknown roles before proceeding. Notes and persistence are the next milestones.
 
@@ -26,7 +26,7 @@ ConsultNote is a single-user interview project for documenting doctor-patient co
 | Application | Next.js App Router, TypeScript, Tailwind CSS |
 | Runtime | Node.js 24 LTS and npm |
 | AI | Gemini Developer API through the official `@google/genai` SDK |
-| Configured default model | `gemini-3.8-flash`; live account access remains unverified |
+| Configured default model | `gemini-3.8-flash`; model listing verified, successful generation pending |
 | Validation | Zod |
 | Storage, planned | SQLite through Node's built-in `node:sqlite` |
 | Audio inspection | `file-type` signatures and FFmpeg's `ffprobe` executable |
@@ -73,7 +73,7 @@ Use `npm run format` to format application files, tests, and configuration. Gene
 
 Copy [.env.example](.env.example) to `.env.local`, set `GEMINI_API_KEY`, and restart the app. Create the key in a free-tier [Google AI Studio project](https://aistudio.google.com/apikey). Leave `GEMINI_MODEL=gemini-3.8-flash` unless you explicitly choose another compatible model. No automatic model fallback or billing setup occurs. Keep actual keys, recordings, and the SQLite database out of Git; never put the key in a `NEXT_PUBLIC_` variable.
 
-Google currently lists a free tier for the configured model; availability and quotas still depend on your account. Use fictional conversations. The implementation follows Google's [audio](https://ai.google.dev/gemini-api/docs/audio), [structured-output](https://ai.google.dev/gemini-api/docs/structured-output) and [pricing](https://ai.google.dev/gemini-api/docs/pricing) documentation checked on 2026-10-13. Live model access, MIME/schema compatibility and transcription quality have not been tested because no key is configured.
+Google currently lists a free tier for the configured model; availability and quotas still depend on your account. Use fictional conversations. The implementation follows Google's [audio](https://ai.google.dev/gemini-api/docs/audio), [structured-output](https://ai.google.dev/gemini-api/docs/structured-output) and [pricing](https://ai.google.dev/gemini-api/docs/pricing) documentation checked on 2026-10-13. On that date, model listing accepted the configured key and included the selected model, but two short fictional transcription attempts returned HTTP 503. Successful audio/schema processing and output quality remain unverified; see [the live-check record](docs/ai-evaluation.md).
 
 ## Version control
 

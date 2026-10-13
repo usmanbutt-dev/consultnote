@@ -1,6 +1,6 @@
 # AI evaluation and interview demonstration
 
-Status: Transcription and speaker review implemented and tested with controlled responses. No live Gemini evaluation has been run: neither `.env.local` nor an environment key was configured during implementation.
+Status: Transcription and speaker review pass controlled-response checks. A configured key was accepted by the model-list endpoint on 2026-10-13, but the first live transcription attempts returned HTTP 503. No live transcript or quality measurement is available yet.
 
 ## Purpose
 
@@ -66,3 +66,19 @@ Explain why the project uses browser capture, a server-side Gemini integration, 
 | Unverified | Account/model access, actual audio MIME and schema acceptance, full-recording coverage, speaker accuracy, role quality and live completion behavior |
 
 The tests are application checks, not model-quality measurements. Once a free-tier key is configured, run short fictional sample A in the app and record the exact application commit, latency and unedited/corrected output here. Follow with samples B and C before claiming demonstration readiness. Sources checked: Google's [audio guide](https://ai.google.dev/gemini-api/docs/audio), [structured outputs](https://ai.google.dev/gemini-api/docs/structured-output) and [Interactions reference](https://ai.google.dev/api/interactions-api).
+
+### 2026-10-13 live connectivity check
+
+| Field | Observation |
+| --- | --- |
+| Application commit / SDK / prompt | `8ad5cfa` / `@google/genai` 2.29.0 / `transcribe-v1` |
+| Model | `gemini-3.8-flash`; kept unchanged |
+| Key configuration | Read by the restarted app from its ignored local environment file; no credentials recorded |
+| Model-list check | `GET /v1beta/models` returned HTTP 200 and included the configured model |
+| Sample | Synthetic smoke dialogue, two FLite voices (`awb` and `slt`), 19.22 seconds, mono 16 kHz PCM WAV, 615,118 bytes |
+| Reference content | Doctor Morgan introduces their role; patient Alex describes two days of mild headaches, requests an appointment after work, agrees Friday afternoon and corrects the start date to Tuesday rather than Monday |
+| App request | `POST /api/transcribe` returned `AI_UNAVAILABLE` (HTTP 503) in 3.5 seconds |
+| Direct SDK diagnostic | Same audio, model, prompt and JSON schema returned provider `InternalServerError` with HTTP 503 in 2.8 seconds |
+| Transcript / accuracy / corrections | No transcript produced; not measurable |
+
+The key was accepted for model listing. This does not establish successful generation or audio/schema compatibility. Both generation attempts disabled automatic retries. Local synthetic audio, reference and safe diagnostic results are kept in ignored `.superpowers/live-transcription-2026-10-13/`; no recording or key was committed. Retry the app manually later before evaluating samples A–C or claiming live quality.
