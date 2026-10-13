@@ -82,3 +82,9 @@ The tests are application checks, not model-quality measurements. Once a free-ti
 | Transcript / accuracy / corrections | No transcript produced; not measurable |
 
 The key was accepted for model listing. This does not establish successful generation or audio/schema compatibility. Both generation attempts disabled automatic retries. Local synthetic audio, reference and safe diagnostic results are kept in ignored `.superpowers/live-transcription-2026-10-13/`; no recording or key was committed. Retry the app manually later before evaluating samples A–C or claiming live quality.
+
+### 2026-10-13 service-error diagnosis
+
+After the user encountered `AI_UNAVAILABLE`, one further direct SDK request at application commit `8630ed8` used the same 19.22-second fictional sample, model, SDK, prompt and schema. Google returned HTTP 503 in 4.8 seconds. Safe inspection of the nested provider error identified high demand and temporary unavailability; no raw error body or credential was recorded.
+
+This reproduces the service failure independently of the user's five-minute MP3. It does not establish successful generation or audio/schema compatibility. The application now distinguishes an explicit provider 503 from its generic connection/model failure message and suggests manual retry. A controlled real-SDK transport regression verifies the public message, hides provider details and confirms a single request. The configured model, request parameters and no-retry policy are unchanged. Google's [troubleshooting guide](https://ai.google.dev/gemini-api/docs/troubleshooting) describes HTTP 503 as temporary service unavailability.

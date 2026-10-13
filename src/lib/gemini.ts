@@ -82,6 +82,13 @@ function providerFailure(error: unknown): ApiError {
       429,
     );
   }
+  if (status === 503) {
+    return new ApiError(
+      "AI_UNAVAILABLE",
+      "Gemini is temporarily busy or unavailable (503). Wait a moment, then retry.",
+      503,
+    );
+  }
   return new ApiError(
     "AI_UNAVAILABLE",
     "Gemini is unavailable. Check your connection and configured model access, then retry.",

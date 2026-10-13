@@ -84,3 +84,26 @@ it("disables the real SDK's automatic retries on a quota response", async () => 
   });
   expect(fetch).toHaveBeenCalledTimes(1);
 });
+
+it("identifies a real SDK service failure without exposing provider details or retrying", async () => {
+  const fetch = vi.fn(async () =>
+    Response.json(
+      {
+        error: {
+          code: 503,
+          message:
+            "High demand. Private request detail: fictional-transport-key",
+        },
+      },
+      { status: 503 },
+    ),
+  );
+  vi.stubGlobal("fetch", fetch);
+  await expect(transcribeAudio(audio)).rejects.toMatchObject({
+    code: "AI_UNAVAILABLE",
+    status: 503,
+    message:
+      "Gemini is temporarily busy or unavailable (503). Wait a moment, then retry.",
+  });
+  expect(fetch).toHaveBeenCalledTimes(1);
+});
