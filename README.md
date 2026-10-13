@@ -2,7 +2,7 @@
 
 AI-assisted doctor–patient conversation notes with transcript evidence and human review.
 
-**Implemented:** microphone/upload, automatic English/Urdu/mixed input with English transcript and notes, speaker review, clinician chart notes with editable sources, history, rename/delete and Markdown download. One **Create notes** action processes audio into a draft. Notes appear first; **View conversation** opens the transcript alongside them on wide desktop screens or switches views on smaller screens. AssemblyAI/Groq is the default processing path. Supabase accounts/private storage and Vercel background processing are prepared for configuration. A clearly labeled sample works without external APIs.
+**Implemented:** microphone/upload, automatic English/Urdu/mixed input with English transcript and notes, speaker review, clinician chart notes with editable sources, history, rename/delete and PDF, plain-text or Markdown downloads. One **Create notes** action processes audio into a draft. Notes appear first; **View conversation** opens the transcript alongside them on wide desktop screens or switches views on smaller screens. AssemblyAI/Groq is the default processing path. Supabase accounts/private storage and Vercel background processing are prepared for configuration. A clearly labeled sample works without external APIs.
 
 ## Run locally
 
@@ -38,7 +38,7 @@ The original Gemini adapter remains available with `TRANSCRIPTION_PROVIDER=gemin
 1. Record or upload an MP3, WAV, WebM or OGG file, then play it back. Speakers may use English, Urdu or a mixture; there is no language selector.
 2. Select **Create notes**. The app reads the conversation and prepares a draft in one flow, with a visible progress message and Cancel. If notes fail, retry reuses the completed transcript.
 3. Review the English notes in their editable bullet sections. **View conversation** reveals the continuous transcript and doctor/patient/unknown role controls. Names appear only when clearly introduced or addressed. Expand **See in conversation** to inspect supporting passages; selecting one reveals and focuses the matching text.
-4. Review the suggested **Patient – Issue – Date** title and select **Save consultation**, then **Download notes** for Markdown. Reopen from history, rename or delete as needed. The date is the current consultation session date; missing names or issues use generic labels. Your custom titles are preserved.
+4. Review the suggested **Patient – Issue – Date** title and select **Save consultation**, then **Download notes**. Choose a formatted PDF, plain text, or Markdown. PDF and text contain the notes; Markdown also includes the conversation and source links. Filenames follow the saved title, preserving readable words, spaces and accents while removing unsupported filename characters. Reopen from history, rename or delete as needed. The date is the current consultation session date; missing names or issues use generic labels. Your custom titles are preserved.
 
 Existing drafts keep their wording. Select **Regenerate notes** for shorter bullets; newly transcribed audio can include spoken names and a suggested title.
 
@@ -49,6 +49,10 @@ AssemblyAI receives audio and performs per-speaker English translation; Groq rec
 Local transcription and notes have 120-second deadlines without automatic generation retries. Cloud transcription uses short requests against a persisted job, avoiding Vercel payload and long-request limits. AssemblyAI polling retrieves one existing job. Optional role inference has a 15-second budget; failure preserves the transcript with unknown roles. Groq uses strict JSON schemas, 1,024 output tokens for roles and 4,096 for notes.
 
 Changing transcript text or roles asks before discarding notes. A server-computed SHA-256 digest rejects stale notes on save. Failed requests preserve the draft; cancelled/replaced results are ignored. Saved consultations contain text only. Export becomes available after saving the current edits.
+
+Downloads are generated locally in the browser without sending notes to another service. The PDF generator and its embedded fonts load only when PDF is selected. PDF files use selectable text, section headings, bullet points, automatic page breaks and page numbers. The last-saved date is labeled separately from any consultation date in the title.
+
+PDF supports the app's English output. If manually edited text uses characters absent from the embedded font, the app explains the limitation and offers plain text or Markdown to preserve them.
 
 **Try a sample conversation** loads prepared fictional text and notes, clearly labeled in the interface and download. It works without external APIs and never claims to have transcribed the user's recording.
 

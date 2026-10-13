@@ -28,7 +28,7 @@ import {
   type ConsultationInput,
 } from "@/lib/consultation";
 import type { TranscriptionResult } from "@/lib/gemini";
-import { toMarkdown } from "@/lib/markdown";
+import { NotesDownload } from "./notes-download";
 import { NOTES_PROMPT_VERSION } from "@/lib/prompts";
 import { type AudioLanguage, type NotesLanguage } from "@/lib/languages";
 import { removeCloudAudio, uploadCloudAudio } from "@/lib/cloud-client";
@@ -668,26 +668,6 @@ export function ConsultationWorkspace({
       setSaving(false);
     }
   }
-  function exportMarkdown() {
-    if (!savedRecord || dirty) return;
-    const blob = new Blob([toMarkdown(savedRecord)], {
-      type: "text/markdown;charset=utf-8",
-    });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${
-      savedRecord.title
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-|-$/g, "")
-        .slice(0, 80) || "consultation"
-    }.md`;
-    document.body.append(link);
-    link.click();
-    link.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 0);
-  }
   function focusSource(id: string) {
     setShowConversation(true);
     setPanel("transcript");
@@ -856,13 +836,10 @@ export function ConsultationWorkspace({
                   <Save aria-hidden="true" size={17} />{" "}
                   {saving ? "Saving…" : "Save consultation"}
                 </button>
-                <button
-                  onClick={exportMarkdown}
+                <NotesDownload
+                  record={savedRecord}
                   disabled={!savedRecord || dirty || busy}
-                  className="min-h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold disabled:text-slate-400"
-                >
-                  Download notes
-                </button>
+                />
               </div>
             )}
           </div>

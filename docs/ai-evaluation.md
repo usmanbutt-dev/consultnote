@@ -1,5 +1,11 @@
 # AI evaluation and interview demonstration
 
+## Note download verification — 2026-10-14
+
+PDF, plain-text and Markdown downloads use the saved consultation title. No provider adapter, prompt or AI output was changed. Verification passed 181 unit tests, all 47 browser tests against the production build with empty AI keys and an isolated database, lint, type checks and the optimized build. Browser checks read actual PDFs to verify saved edits, accented text, title metadata, six-page pagination and page numbers. An unsupported Urdu custom title produces an explicit font message and a working Unicode text download. The fictional PDF and desktop/mobile picker were visually inspected without browser errors.
+
+The production save/restart/reopen/delete check passed. The current local saved consultation reopens with 32 transcript turns and 13 notes; temporary browser and preview records were removed. No live AI request, merge, push or deployment was performed for this feature.
+
 ## Guided workflow verification — 2026-10-14
 
 The client now runs transcription followed by notes from one **Create notes** action. Provider adapters, prompts and provenance formats are unchanged in this UI pass. New browser coverage checks the combined result, notes-only retry after a notes failure, and cancellation after transcription completes. Existing coverage was adapted to preserve focused edits, source navigation, save/reopen/download, regeneration failure, recording replacement and cloud job retry behavior. These checks use controlled provider responses and make no live AI calls.

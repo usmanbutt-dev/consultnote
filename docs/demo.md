@@ -16,7 +16,7 @@ Keys remain on the server. Audio is sent to AssemblyAI; transcript text is sent 
 1. Explain the problem: capture the full conversation, including financial and practical context, without treating generated notes as verified facts.
 2. Upload a short fictional recording or record both participants. Play it back, then select **Create notes**. Explain the two visible progress stages and Cancel.
 3. Review the draft notes. Select **View conversation** to inspect the words and speaker roles. Expand **See in conversation** and select a passage to focus its supporting text; edit one note's wording. Changing transcript text or roles discards outdated notes after confirmation; **Create notes** then uses the edited transcript without re-uploading audio.
-4. Review the suggested title and select **Save consultation**. Start a new consultation, reopen the saved title from history and show that the recording is absent. Rename and save it, then select **Download notes** for Markdown.
+4. Review the suggested title and select **Save consultation**. Start a new consultation, reopen the saved title from history and show that the recording is absent. Rename and save it, then select **Download notes** and choose **PDF document (.pdf)**. Show its readable headings, bullet points and title-based filename. Plain text contains the same notes; Markdown also includes the conversation and source links.
 5. Explain failures: a provider error preserves the draft; cancelled/stale results are ignored; editing transcript text or roles asks before invalidating notes; stale notes cannot be saved.
 
 ## Demonstration without external APIs

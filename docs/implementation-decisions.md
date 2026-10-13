@@ -1,5 +1,13 @@
 # Implementation decisions and tradeoffs
 
+## Readable note downloads — 2026-10-14
+
+The existing Download action now opens a native browser popover offering PDF first, plain text and Markdown. PDF and text export saved notes without technical metadata or a transcript appendix; Markdown preserves the existing source links and full conversation. Every format uses the saved title for its filename, retaining spaces, capitalization and Unicode while removing filesystem-invalid characters, handling reserved Windows names and limiting UTF-8 filename length.
+
+Browser print-to-PDF would avoid a dependency but requires a print dialog and leaves filename handling to the browser. Direct PDF downloads use [pdfmake's client API](https://pdfmake.github.io/docs/0.3/getting-started/client-side/methods/), loaded on demand with embedded Roboto fonts. This provides selectable text, pagination, headings and page numbers without another AI call, remote rendering service or Vercel runtime changes. Saving current edits remains required before any download. Sample labels remain in every format; dates are explicitly labeled as last saved.
+
+PDF targets the app's English output. A character-coverage check derived from the pinned font files rejects unsupported custom wording before rendering and directs users to plain text or Markdown, which preserve all Unicode. This avoids silently losing Urdu characters in a manually entered title without bundling fonts for arbitrary scripts. Download descriptions are associated with their controls for screen readers.
+
 ## Guided creation and review — 2026-10-14
 
 The default view shows recording and upload actions, with a small sample link. Audio-ready capture collapses to the player and replacement controls. A single **Create notes** action runs the existing transcription and notes calls sequentially, passing the returned transcript and suggested assignments directly into note generation. A request-generation guard prevents duplicate flow starts and skips continuation after cancellation or navigation. Failed notes retain the completed transcript; retry runs only note generation.

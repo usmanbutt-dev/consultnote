@@ -223,8 +223,11 @@ test("saves, reopens, renames and exports a consultation through real SQLite rou
     await page
       .getByRole("button", { name: "Download notes", exact: true })
       .click();
+    await page
+      .getByRole("button", { name: "Markdown (.md)", exact: true })
+      .click();
     const download = await downloadPromise;
-    expect(download.suggestedFilename()).toMatch(/\.md$/);
+    expect(download.suggestedFilename()).toBe(`${title} reviewed.md`);
     const stream = await download.createReadStream();
     let markdown = "";
     for await (const chunk of stream!) markdown += chunk.toString();
