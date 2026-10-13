@@ -1,7 +1,7 @@
 # ConsultNote development
 
 - Read `README.md`, the design, and the implementation plan before changing application behavior.
-- Preserve the agreed scope: a single-user interview demo using fictional conversations. AssemblyAI/Groq is the approved default; Gemini remains an explicitly selected transcription alternative.
+- Preserve the agreed scope: doctor accounts with private workspaces in an interview demo using fictional conversations. AssemblyAI/Groq is the approved default; Gemini remains an explicitly selected transcription alternative.
 - Reuse existing code and native browser/Node features before adding dependencies. Keep changes focused.
 - Keep Gemini credentials and calls in server-only modules. Never commit recordings, secrets, or the local database.
 - Treat speaker roles as suggestions until reviewed. Preserve unknown roles and uncertainty. Notes must cite transcript segments.

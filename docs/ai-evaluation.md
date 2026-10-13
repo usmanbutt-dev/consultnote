@@ -1,5 +1,13 @@
 # AI evaluation and interview demonstration
 
+## Doctor account verification — 2026-10-14
+
+Signup/login, confirmation and recovery UI, minor profile edits, private photo handling and password-confirmed self-deletion are implemented. Account server and form checks use controlled Supabase/API responses; no live email, authentication or AI requests were made. The workspace keeps recorded speaker names distinct from the account owner, with optional speaker correction.
+
+Verification passed 210 unit tests, all 50 browser tests against the optimized production build with empty provider keys and an isolated database, lint, type checks and formatting. Save/restart/reopen/delete passed separately. A browser-history draft-loss regression failed before the document-navigation fix and passed afterward. The cloud browser harness explicitly supplies the image configuration normally injected by Next.js. Desktop/mobile profile markup was visually inspected using a fictional fixture, with no horizontal overflow.
+
+Supabase CLI/project linking, migration application, live email delivery, two-account RLS/Storage isolation and real self-deletion remain unverified until the deferred cloud setup. No deployment was performed. These application checks do not measure transcription or clinical accuracy.
+
 ## Note download verification — 2026-10-14
 
 PDF, plain-text and Markdown downloads use the saved consultation title. No provider adapter, prompt or AI output was changed. Verification passed 181 unit tests, all 47 browser tests against the production build with empty AI keys and an isolated database, lint, type checks and the optimized build. Browser checks read actual PDFs to verify saved edits, accented text, title metadata, six-page pagination and page numbers. An unsupported Urdu custom title produces an explicit font message and a working Unicode text download. The fictional PDF and desktop/mobile picker were visually inspected without browser errors.

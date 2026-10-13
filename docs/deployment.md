@@ -1,31 +1,34 @@
 # Supabase and Vercel setup
 
-The local app works now with SQLite. Cloud integration is prepared; Supabase authentication, policies, Storage and live Vercel execution still need verification after you configure your project. Existing local drafts stay in SQLite and are not automatically uploaded.
+The local app works now with SQLite. Account/profile code and versioned cloud migrations are implemented. Supabase CLI/project setup, real authentication/email/RLS/Storage checks, repository connection and Vercel deployment are deliberately deferred at the user's request. Existing local drafts stay in SQLite and are not automatically uploaded.
 
 ## 1. Create the free Supabase project
 
 1. Create a project at [Supabase](https://supabase.com/dashboard). Keep the database password private.
-2. Run [supabase/schema.sql](../supabase/schema.sql) once in the SQL editor. It creates owner-scoped consultations, private audio Storage, transcription jobs and server-only processing limits.
-3. Copy the project URL, publishable key and legacy service-role key from project Settings → API/API Keys into the ignored `.env` or `.env.local`:
+2. Initialize/link the Supabase CLI when proceeding with setup, then apply [the initial schema](../supabase/migrations/20261013000100_initial.sql) and [doctor accounts](../supabase/migrations/20261014000100_doctor_accounts.sql) in timestamp order using `supabase db push`. They create private consultations, profiles, photo/audio Storage, jobs and server-only processing limits. On a project that already ran the former `schema.sql`, reconcile migration history before pushing the initial migration; do not reapply its policies blindly. See [Supabase migrations](https://supabase.com/docs/guides/deployment/database-migrations).
+3. Copy the project URL and publishable key from Connect, and a secret key from Settings → API Keys, into the ignored `.env` or `.env.local`:
 
    ```dotenv
    NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
-   SUPABASE_SERVICE_ROLE_KEY=your-server-only-service-role-key
+   SUPABASE_SECRET_KEY=your-server-only-secret-key
    TRANSCRIPTION_PROVIDER=assemblyai
    ASSEMBLYAI_API_KEY=your-assemblyai-key
    GROQ_API_KEY=your-groq-key
    GROQ_MODEL=openai/gpt-oss-120b
    ```
 
-   Keep the service-role and provider keys server-only. No service-role key belongs in browser code or Git.
-4. Under Authentication → URL Configuration, set the local Site URL to `http://127.0.0.1:3000`. Add `http://127.0.0.1:3000/auth/callback` as an allowed redirect. Restart the app.
-5. Create an account at `/login`, confirm it, and sign in. The app uses email and password; logout is in the header.
+   Keep secret/provider keys server-only. The old `SUPABASE_SERVICE_ROLE_KEY` name remains supported as a fallback; a configured modern secret takes priority. See [Supabase API keys](https://supabase.com/docs/guides/getting-started/api-keys).
+4. Under Authentication → URL Configuration, set the local Site URL to `http://127.0.0.1:3000` and allow `http://127.0.0.1:3000/**` for local callbacks and password recovery. Use explicit hosted origins later. Restart the app.
+5. Create an account at `/login` with name, email and password, confirm it, and sign in. The avatar menu opens My profile and Sign out. Forgotten-password emails return through the callback to `/reset-password`.
 
 Supabase's default email sender is restricted: it sends only to project-team addresses and has a low hourly limit. For a private interview demo, you can disable email confirmation in the provider settings or create confirmed test users in the dashboard. For public signups with confirmation, configure a custom SMTP sender. Never present disabled confirmation as verified email ownership. See [Supabase email setup](https://supabase.com/docs/guides/auth/auth-smtp).
 
 ## 2. Verify cloud mode locally
 
+- Create/confirm a doctor account, sign in, edit name/specialty/clinic and reload. Upload/replace/remove a small JPG, PNG or WebP photo; verify initials when absent and verify another account cannot read the private photo. Email is displayed read-only; password changes use a separate screen.
+- Test forgotten-password recovery and an expired callback. Supabase email delivery/SMTP and redirect allowlists must work before claiming these flows are live.
+- Using a disposable account, save a fictional consultation and upload a photo. Delete with wrong password first: data must remain. Then enter the correct password and DELETE: Auth, profile, consultations, jobs/usage and owned Storage objects must disappear. The login page should confirm removal; old credentials/tokens must no longer access data. If cleanup fails, retry deletion from My profile rather than claiming success.
 - Account A: upload the five-minute recording, transcribe, review roles, generate/edit notes and save. The browser should upload the file directly to Supabase Storage; `/api/audio/validate` and `/api/transcribe/jobs` receive small JSON bodies.
 - Sign out, then sign in as account B. A's history must be absent. Direct record and job requests for A's IDs must return 404. Supabase Storage must reject B reading A's private object.
 - Check the `consultations` table for owner IDs and the `transcription_jobs` table for one provider ID per submission.
@@ -56,8 +59,8 @@ The approved English MP3 completed transcription with English translation and En
 ## Configuration troubleshooting
 
 - Cloud setup pending: add both public Supabase variables and restart/redeploy.
-- Cloud processing needs server key: add `SUPABASE_SERVICE_ROLE_KEY`, keeping it private.
-- Database setup error: run the SQL once and confirm the three tables and RPCs exist.
+- Cloud processing needs server key: add `SUPABASE_SECRET_KEY` (or the supported legacy name), keeping it private.
+- Database setup error: apply both versioned migrations and confirm `doctor_profiles`, consultations, jobs, usage, Storage policies and RPCs exist.
 - Upload rejected: check the private bucket, policies, file size and supported file format.
 - Sign-in/confirmation failure: check redirects, email confirmation and SMTP setup.
 - Provider quota/busy error: the draft remains available. Resume a pending job instead of creating duplicate transcriptions.

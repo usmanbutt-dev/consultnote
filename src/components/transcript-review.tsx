@@ -37,55 +37,58 @@ export function TranscriptReview({
 
   return (
     <div className="min-w-0 px-5 py-5">
-      <fieldset
-        disabled={disabled}
-        className="grid gap-3 sm:grid-cols-2 disabled:opacity-60"
-      >
-        <legend className="mb-3 text-base font-semibold text-slate-800">
-          Speakers
-        </legend>
-        {transcript.speakers.map((speaker, index) => (
-          <div key={speaker.id} className="min-w-0">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <label
-                htmlFor={`role-${speaker.id}`}
-                className="text-sm font-semibold"
-              >
-                {transcript.details?.names.find(
-                  (name) => name.speakerId === speaker.id,
-                )?.name ?? `Speaker ${index + 1}`}
-              </label>
-              <select
-                id={`role-${speaker.id}`}
-                aria-label={`Speaker ${index + 1} role`}
-                value={
-                  assignments.find((item) => item.speakerId === speaker.id)
-                    ?.role ?? "unknown"
-                }
-                className="min-h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm"
-                onChange={(event) => {
-                  const role = speakerRoleSchema.safeParse(
-                    event.currentTarget.value,
-                  );
-                  if (!role.success) return;
-                  const next = assignmentsSchema.safeParse(
-                    assignments.map((item) =>
-                      item.speakerId === speaker.id
-                        ? { ...item, role: role.data }
-                        : item,
-                    ),
-                  );
-                  if (next.success) onAssignmentsChange(next.data);
-                }}
-              >
-                <option value="doctor">Doctor</option>
-                <option value="patient">Patient</option>
-                <option value="unknown">Unknown</option>
-              </select>
+      <details className="text-sm text-slate-700">
+        <summary className="cursor-pointer py-2 font-medium underline decoration-slate-300 underline-offset-4">
+          Correct speaker labels
+        </summary>
+        <fieldset
+          disabled={disabled}
+          className="grid gap-3 sm:grid-cols-2 disabled:opacity-60"
+        >
+          <legend className="sr-only">Speaker labels</legend>
+          {transcript.speakers.map((speaker, index) => (
+            <div key={speaker.id} className="min-w-0">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <label
+                  htmlFor={`role-${speaker.id}`}
+                  className="text-sm font-semibold"
+                >
+                  {transcript.details?.names.find(
+                    (name) => name.speakerId === speaker.id,
+                  )?.name ?? `Speaker ${index + 1}`}
+                </label>
+                <select
+                  id={`role-${speaker.id}`}
+                  aria-label={`Speaker ${index + 1} role`}
+                  value={
+                    assignments.find((item) => item.speakerId === speaker.id)
+                      ?.role ?? "unknown"
+                  }
+                  className="min-h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm"
+                  onChange={(event) => {
+                    const role = speakerRoleSchema.safeParse(
+                      event.currentTarget.value,
+                    );
+                    if (!role.success) return;
+                    const next = assignmentsSchema.safeParse(
+                      assignments.map((item) =>
+                        item.speakerId === speaker.id
+                          ? { ...item, role: role.data }
+                          : item,
+                      ),
+                    );
+                    if (next.success) onAssignmentsChange(next.data);
+                  }}
+                >
+                  <option value="doctor">Doctor</option>
+                  <option value="patient">Patient</option>
+                  <option value="unknown">Unknown</option>
+                </select>
+              </div>
             </div>
-          </div>
-        ))}
-      </fieldset>
+          ))}
+        </fieldset>
+      </details>
       {error && (
         <p role="alert" className="mt-4 text-sm leading-6 text-red-800">
           {error}

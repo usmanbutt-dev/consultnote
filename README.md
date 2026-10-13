@@ -2,7 +2,7 @@
 
 AI-assisted doctor–patient conversation notes with transcript evidence and human review.
 
-**Implemented:** microphone/upload, automatic English/Urdu/mixed input with English transcript and notes, speaker review, clinician chart notes with editable sources, history, rename/delete and PDF, plain-text or Markdown downloads. One **Create notes** action processes audio into a draft. Notes appear first; **View conversation** opens the transcript alongside them on wide desktop screens or switches views on smaller screens. AssemblyAI/Groq is the default processing path. Supabase accounts/private storage and Vercel background processing are prepared for configuration. A clearly labeled sample works without external APIs.
+**Implemented:** microphone/upload, automatic English/Urdu/mixed input with English transcript and notes, optional speaker correction, clinician chart notes with editable sources, history, rename/delete and PDF, plain-text or Markdown downloads. One **Create notes** action processes audio into a draft. Notes appear first; **View conversation** opens the transcript alongside them on wide desktop screens or switches views on smaller screens. Doctor signup/login, password recovery, private profiles/photos and account deletion are implemented; Supabase configuration and live account checks remain pending. AssemblyAI/Groq is the default processing path. A clearly labeled sample works without external APIs.
 
 ## Run locally
 
@@ -30,6 +30,8 @@ DATABASE_PATH=.data/consultnote.sqlite
 AssemblyAI offers [trial credits](https://support.assemblyai.com/articles/5370767329-can-i-sign-up-for-free); Groq offers a [free plan with limits](https://console.groq.com/docs/rate-limits). Access and remaining quota depend on the account. The app does not enable billing. Keep provider credentials server-side and out of Git; never prefix them with `NEXT_PUBLIC_`.
 
 For accounts, online storage and hosting, follow [Supabase and Vercel setup](docs/deployment.md). Leaving Supabase unset keeps local SQLite mode. On Vercel, missing cloud configuration blocks access instead of enabling local anonymous processing.
+
+The avatar menu replaces Help. Signed-in doctors can edit their name, specialty, clinic and photo under **My profile**, change passwords, or permanently delete their account after entering their current password and typing DELETE. The account name identifies the workspace owner; speaker names still come from the recording. **Correct speaker labels** keeps manual corrections available without a permanent selection panel. Supabase migrations, CLI/project connection and Vercel deployment are deferred until the user proceeds with setup; local drafts are preserved.
 
 The original Gemini adapter remains available with `TRANSCRIPTION_PROVIDER=gemini`, `GEMINI_API_KEY` and `GEMINI_MODEL=gemini-3.8-flash`. There is no automatic provider/model substitution after a failed request. Gemini overload diagnostics and the replacement's live checks are documented in [AI evaluation](docs/ai-evaluation.md).
 

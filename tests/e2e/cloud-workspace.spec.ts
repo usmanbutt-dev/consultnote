@@ -26,6 +26,7 @@ test.beforeAll(async () => {
     configFile: false,
     envFile: false,
     logLevel: "error",
+    define: { "process.env.__NEXT_IMAGE_OPTS": "undefined" },
     resolve: { alias: { "@": `${root}/src` } },
     server: { host: "127.0.0.1", port: 3202, strictPort: true },
     plugins: [

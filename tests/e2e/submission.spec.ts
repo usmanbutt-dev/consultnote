@@ -168,6 +168,7 @@ test("generates editable evidence-linked notes and confirms before invalidating 
     page.getByLabel("History note 1", { exact: true }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Conversation", exact: true }).click();
+  await page.getByText("Correct speaker labels", { exact: true }).click();
   page.once("dialog", (dialog) => dialog.accept());
   await page
     .getByLabel("Speaker 1 role", { exact: true })

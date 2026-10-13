@@ -1,5 +1,15 @@
 # Implementation decisions and tradeoffs
 
+## Doctor accounts and private profiles — 2026-10-14
+
+Supabase remains the account provider. Signup records a name; the Auth trigger creates a private doctor profile, with backfill for existing users. Profile editing permits name, specialty and clinic only. Email remains read-only; password recovery/change is separate. Photos use a private bucket, generated owner-scoped paths, bounded signature-checked JPEG/PNG/WebP uploads and an authenticated image endpoint. Initials replace absent or unreadable photos. The former Help icon becomes an account menu with My profile and local Sign out.
+
+Self-deletion requires same-origin input, the current password and exact DELETE, deriving identity from verified `getUser()`. It retires the profile, sets a server-only account-deletion flag, cancels owned jobs, removes all owned audio/avatar objects through Storage, then deletes Auth so foreign-key cascades remove profile/consultations/jobs/usage. Failures preserve a retry path; inactive-profile RLS blocks access from still-unexpired JWTs. Session/recovery cookies are cleared only for this Supabase project. Modern `SUPABASE_SECRET_KEY` takes priority over the supported legacy server-key name.
+
+The account doctor's name identifies the workspace owner, not an arbitrary voice. Recorded names and unknown speaker roles remain intact. Permanent role controls move into Correct speaker labels, preserving corrections and stale-notes protection. Account links use document navigation so browser Back/Forward invokes the native unsaved-draft warning. Modified clicks keep the original tab protected. An explicitly approved departure suppresses only its own unload warning, including when a page is later restored from browser history.
+
+The old schema is now the first versioned migration; a second adds accounts. CLI configuration, migration application, real email/storage/two-account checks and Vercel deployment are deferred at the user's request. Automated forms use a test-only DOM environment and controlled auth/API responses, with no emails or live AI calls.
+
 ## Readable note downloads — 2026-10-14
 
 The existing Download action now opens a native browser popover offering PDF first, plain text and Markdown. PDF and text export saved notes without technical metadata or a transcript appendix; Markdown preserves the existing source links and full conversation. Every format uses the saved title for its filename, retaining spaces, capitalization and Unicode while removing filesystem-invalid characters, handling reserved Windows names and limiting UTF-8 filename length.

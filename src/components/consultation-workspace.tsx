@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import {
   AudioLines,
   FileText,
-  HelpCircle,
   MessageSquareText,
   Plus,
   Save,
@@ -14,6 +13,8 @@ import { AudioInput } from "./audio-input";
 import { TranscriptReview } from "./transcript-review";
 import { NotesEditor } from "./notes-editor";
 import { ConsultationHistory } from "./consultation-history";
+import { ProfileMenu } from "./profile-menu";
+import type { DoctorProfile } from "@/lib/account";
 import { z } from "zod";
 import {
   transcriptSchema,
@@ -71,7 +72,9 @@ async function apiRequest(url: string, init?: RequestInit): Promise<unknown> {
 
 export function ConsultationWorkspace({
   configuration,
+  doctor = null,
 }: {
+  doctor?: DoctorProfile | null;
   configuration: {
     provider: string;
     transcriptionConfigured: boolean;
@@ -116,6 +119,7 @@ export function ConsultationWorkspace({
   );
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const leaving = useRef(false);
   const [history, setHistory] = useState<
     z.infer<typeof consultationSummarySchema>[]
   >([]);
@@ -151,6 +155,10 @@ export function ConsultationWorkspace({
   }, []);
   useEffect(() => {
     const warn = (event: BeforeUnloadEvent) => {
+      if (leaving.current) {
+        leaving.current = false;
+        return;
+      }
       if (dirty) {
         event.preventDefault();
         event.returnValue = "";
@@ -738,44 +746,25 @@ export function ConsultationWorkspace({
             />{" "}
             ConsultNote
           </a>
-          <div className="flex items-center gap-3">
-            <details className="relative text-sm text-slate-700">
-              <summary
-                aria-label="Help"
-                className="flex size-11 items-center justify-center rounded-lg hover:bg-slate-100"
-              >
-                <HelpCircle aria-hidden="true" size={21} />
-              </summary>
-              <p className="absolute right-0 z-20 mt-2 w-64 rounded-xl border border-slate-200 bg-white p-4 leading-6 shadow-lg">
-                Record or upload a conversation, create notes, then review and
-                save. Use fictional conversations for this demo.
-              </p>
-            </details>
-            {configuration.cloud && (
-              <button
-                onClick={async () => {
-                  if (
-                    dirty &&
-                    !window.confirm(
-                      "Sign out? Unsaved changes will be discarded.",
-                    )
-                  )
-                    return;
-                  try {
-                    await apiRequest("/api/auth/signout", { method: "POST" });
-                    setDirty(false);
-                    window.location.assign("/login");
-                  } catch {
-                    setStorageError("Sign-out failed. Please try again.");
-                  }
-                }}
-                disabled={busy}
-                className="min-h-11 px-3 text-sm font-semibold text-slate-700 disabled:opacity-50"
-              >
-                Sign out
-              </button>
-            )}
-          </div>
+          <ProfileMenu
+            profile={doctor}
+            disabled={busy}
+            onBeforeNavigate={() => {
+              if (
+                busy ||
+                (dirty &&
+                  !window.confirm(
+                    "Leave this consultation? Unsaved changes will be discarded.",
+                  ))
+              )
+                return false;
+              leaving.current = true;
+              return true;
+            }}
+            onNavigationError={() => {
+              leaving.current = false;
+            }}
+          />
         </header>
         <main
           id="workspace"

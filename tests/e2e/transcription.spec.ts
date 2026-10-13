@@ -28,6 +28,7 @@ async function viewConversation(page: Page) {
   await page
     .getByRole("button", { name: "View conversation", exact: true })
     .click();
+  await page.getByText("Correct speaker labels", { exact: true }).click();
 }
 async function upload(page: Page) {
   await page.goto("/");

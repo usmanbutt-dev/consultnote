@@ -1,4 +1,4 @@
--- Run once in the Supabase SQL editor. No real patient data in this demo.
+-- Initial cloud schema. Apply through Supabase migrations. No real patient data in this demo.
 create table if not exists public.consultations (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
