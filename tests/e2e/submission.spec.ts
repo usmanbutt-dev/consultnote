@@ -43,6 +43,80 @@ async function transcribe(page: import("@playwright/test").Page) {
     page.getByLabel("Transcript segment 1", { exact: true }),
   ).toBeVisible();
 }
+for (const field of ["Discussion note 1", "Transcript segment 1"]) {
+  test(`protects a focused ${field} edit before blur`, async ({
+    page,
+    request,
+  }) => {
+    const input = await (await request.get("/api/sample")).json();
+    const created = await request.post("/api/consultations", {
+      data: { ...input, title: `Pending edit QA ${field} ${Date.now()}` },
+    });
+    expect(created.status()).toBe(201);
+    const record = await created.json();
+    try {
+      await page.goto("/");
+      await page
+        .getByRole("button", { name: record.title, exact: true })
+        .click();
+      await expect(
+        page.getByRole("button", { name: "Export Markdown", exact: true }),
+      ).toBeEnabled();
+      const editor = page.getByLabel(field, { exact: true });
+      await editor.fill("Pending wording still being edited.");
+      await expect(editor).toBeFocused();
+      expect(
+        await page.evaluate(() => {
+          const event = new Event("beforeunload", { cancelable: true });
+          window.dispatchEvent(event);
+          return event.defaultPrevented;
+        }),
+      ).toBe(true);
+      await expect(
+        page.getByRole("button", { name: "Export Markdown", exact: true }),
+      ).toBeDisabled();
+      await expect(editor).toHaveValue("Pending wording still being edited.");
+    } finally {
+      await request.delete(`/api/consultations/${record.id}`);
+    }
+  });
+}
+test("preserves older note model and prompt provenance when renaming", async ({
+  page,
+  request,
+}) => {
+  const sample = await (await request.get("/api/sample")).json();
+  const input = {
+    ...sample,
+    title: `Provenance QA ${Date.now()}`,
+    model:
+      "AssemblyAI:previous; Groq:previous-roles | notes:Groq:previous-notes-model",
+    promptVersion: "assemblyai-v1/roles-v1 | notes:notes-v2",
+  };
+  const created = await request.post("/api/consultations", { data: input });
+  expect(created.status()).toBe(201);
+  const record = await created.json();
+  try {
+    await page.goto("/");
+    await page.getByRole("button", { name: input.title, exact: true }).click();
+    await page
+      .getByLabel("Consultation title", { exact: true })
+      .fill(`${input.title} renamed`);
+    const saved = page.waitForResponse(
+      (response) =>
+        response.url().endsWith(`/api/consultations/${record.id}`) &&
+        response.request().method() === "PATCH",
+    );
+    await page
+      .getByRole("button", { name: "Save consultation", exact: true })
+      .click();
+    const updated = await (await saved).json();
+    expect(updated.model).toBe(input.model);
+    expect(updated.promptVersion).toBe(input.promptVersion);
+  } finally {
+    await request.delete(`/api/consultations/${record.id}`);
+  }
+});
 test("generates editable evidence-linked notes and confirms before invalidating them", async ({
   page,
 }) => {

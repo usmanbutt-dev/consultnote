@@ -84,7 +84,10 @@ export function ConsultationWorkspace({
   const [transcriptionError, setTranscriptionError] = useState("");
   const [title, setTitle] = useState("Untitled consultation");
   const [notesResult, setNotesResult] = useState<NotesResult | null>(null);
-  const [notesGenerated, setNotesGenerated] = useState(false);
+  const [notesProvenance, setNotesProvenance] = useState<Pick<
+    ConsultationInput,
+    "model" | "promptVersion"
+  > | null>(null);
   const [generatingNotes, setGeneratingNotes] = useState(false);
   const [notesError, setNotesError] = useState("");
   const [storageError, setStorageError] = useState("");
@@ -184,7 +187,7 @@ export function ConsultationWorkspace({
     setTranscription(null);
     setAssignments([]);
     setNotesResult(null);
-    setNotesGenerated(false);
+    setNotesProvenance(null);
     setSavedRecord(null);
     setDirty(false);
     setStorageError("");
@@ -245,6 +248,7 @@ export function ConsultationWorkspace({
       );
       cancelNotes();
       setNotesResult(null);
+      setNotesProvenance(null);
       setSavedRecord(null);
       setDirty(true);
     } catch (error) {
@@ -272,6 +276,7 @@ export function ConsultationWorkspace({
       return false;
     cancelNotes();
     setNotesResult(null);
+    setNotesProvenance(null);
     setDirty(true);
     return true;
   }
@@ -331,7 +336,10 @@ export function ConsultationWorkspace({
           "The notes contain invalid source references. Please retry.",
         );
       setNotesResult(parsed.data);
-      setNotesGenerated(true);
+      setNotesProvenance({
+        model: `${transcription.model} | notes:Groq:${configuration.notesModel}`,
+        promptVersion: `${transcription.promptVersion} | notes:${NOTES_PROMPT_VERSION}`,
+      });
       setDirty(true);
     } catch (error) {
       if (generation === notesRequest.current.generation)
@@ -360,8 +368,9 @@ export function ConsultationWorkspace({
       transcript: transcription.transcript,
       assignments,
       notesResult,
-      model: `${transcription.model.split(" | notes:")[0]} | notes:${notesGenerated ? `Groq:${configuration.notesModel}` : "Prepared fictional sample"}`,
-      promptVersion: `${transcription.promptVersion.split(" | notes:")[0]} | notes:${notesGenerated ? NOTES_PROMPT_VERSION : "sample-v1"}`,
+      model: notesProvenance?.model ?? transcription.model,
+      promptVersion:
+        notesProvenance?.promptVersion ?? transcription.promptVersion,
     };
     try {
       const parsed = consultationRecordSchema.parse(
@@ -404,9 +413,10 @@ export function ConsultationWorkspace({
     });
     setAssignments(input.assignments);
     setNotesResult(input.notesResult);
-    setNotesGenerated(
-      input.promptVersion.includes(`notes:${NOTES_PROMPT_VERSION}`),
-    );
+    setNotesProvenance({
+      model: input.model,
+      promptVersion: input.promptVersion,
+    });
     setTitle(input.title);
     setSavedRecord(record);
     setDirty(!record);
@@ -871,6 +881,7 @@ export function ConsultationWorkspace({
                   disabled={busy}
                   onTranscriptChange={editTranscript}
                   onAssignmentsChange={editAssignments}
+                  onPendingEdit={() => setDirty(true)}
                 />
               ) : (
                 <div className="flex flex-1 flex-col items-center justify-center px-6 py-9 text-center">
@@ -959,6 +970,7 @@ export function ConsultationWorkspace({
                   result={notesResult}
                   transcript={transcription.transcript}
                   disabled={busy}
+                  onPendingEdit={() => setDirty(true)}
                   onChange={(next) => {
                     setNotesResult(next);
                     setDirty(true);

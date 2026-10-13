@@ -10,9 +10,7 @@ import { ApiError } from "./http";
 import { withProviderDeadline } from "./provider-http";
 
 export function processingConfiguration() {
-  const provider =
-    process.env.TRANSCRIPTION_PROVIDER?.trim() ||
-    (process.env.ASSEMBLYAI_API_KEY?.trim() ? "assemblyai" : "gemini");
+  const provider = process.env.TRANSCRIPTION_PROVIDER?.trim() || "assemblyai";
   return {
     provider,
     transcriptionConfigured: Boolean(

@@ -29,6 +29,20 @@ afterEach(() => {
   vi.unstubAllEnvs();
   vi.useRealTimers();
 });
+it("defaults to AssemblyAI even when only a Gemini key remains", async () => {
+  vi.stubEnv("TRANSCRIPTION_PROVIDER", "");
+  vi.stubEnv("ASSEMBLYAI_API_KEY", "");
+  vi.stubEnv("GEMINI_API_KEY", "legacy-key");
+  expect(processingConfiguration()).toMatchObject({
+    provider: "assemblyai",
+    transcriptionConfigured: false,
+  });
+  vi.mocked(transcribeWithAssemblyAI).mockRejectedValue(
+    new Error("missing key"),
+  );
+  await expect(transcribeAudio(audio)).rejects.toThrow("missing key");
+  expect(gemini).not.toHaveBeenCalled();
+});
 it("honors an explicit Gemini selection instead of silently switching providers", async () => {
   vi.stubEnv("TRANSCRIPTION_PROVIDER", "gemini");
   vi.mocked(gemini).mockResolvedValue({

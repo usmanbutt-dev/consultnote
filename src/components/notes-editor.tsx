@@ -17,12 +17,14 @@ export function NotesEditor({
   transcript,
   disabled,
   onChange,
+  onPendingEdit,
   onSource,
 }: {
   result: NotesResult;
   transcript: Transcript;
   disabled: boolean;
   onChange: (result: NotesResult) => void;
+  onPendingEdit?: () => void;
   onSource: (id: string) => void;
 }) {
   const [error, setError] = useState("");
@@ -64,6 +66,7 @@ export function NotesEditor({
                   rows={3}
                   disabled={disabled}
                   className="w-full resize-y rounded-md border border-slate-200 bg-white p-2 text-xs leading-6 text-slate-700 disabled:opacity-60"
+                  onInput={onPendingEdit}
                   onBlur={(event) => {
                     const text = event.currentTarget.value.trim();
                     const parsed = notesSchema.safeParse({

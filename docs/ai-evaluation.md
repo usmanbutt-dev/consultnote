@@ -1,6 +1,51 @@
 # AI evaluation and interview demonstration
 
-Status: Transcription and speaker review pass controlled-response checks. A configured key was accepted by the model-list endpoint on 2026-10-13, but the first live transcription attempts returned HTTP 503. No live transcript or quality measurement is available yet.
+Status: The AssemblyAI/Groq workflow completed three fictional live evaluations and the user's approved five-minute MP3 on 2026-10-13. Transcript, role and note review remains necessary. Earlier Gemini investigations are retained below as historical records.
+
+## Current submission evaluation — 2026-10-13
+
+Provider implementation: `2df9596`, followed by the final reviewed fixes on `feat/submission-workflow`. Native HTTPS requests use AssemblyAI `/v2/upload` and `/v2/transcript`, then Groq `/openai/v1/chat/completions`. AssemblyAI selected `universal-3-pro`; Groq used `openai/gpt-oss-120b`, `roles-v1` and `notes-v3`. The original Gemini adapter remains available through explicit configuration.
+
+Each fictional recording was generated locally with FFmpeg FLite, using distinct `awb`, `slt` and, for the third speaker, `rms` voices. Audio is mono 16 kHz PCM WAV. References, unedited output and timings are local ignored diagnostic files. The third recording includes low-volume pink noise. These are short synthetic smoke evaluations, not a benchmark of natural speech, accents, overlap or clinical accuracy. Each sample was processed once for this evaluation, without automatic generation retries; calls were spaced to respect the account's limits.
+
+| Sample | Duration | Transcription + roles | Notes | Observed speakers / turns / notes |
+| --- | ---: | ---: | ---: | --- |
+| A: quiet dialogue and corrected start day | 19.22 s | 11.3 s | 1.5 s | 2 / 4 / 7 |
+| B: uncertain symptoms, corrected cost and work constraints | 43.70 s | 11.8 s | 2.6 s | 2 / 8 / 9 |
+| C: caregiver, tentative scheduling and background noise | 53.56 s | 12.8 s | 1.7 s | 3 / 9 / 6 |
+
+The expected doctor and patient roles were suggested in all three recordings. In C, the caregiver remained `unknown`, the available role for someone who is neither doctor nor patient. All emitted notes passed schema and source-reference validation. That validation does not establish semantic accuracy.
+
+Concrete observations from the reference text and unedited output:
+
+- A preserved the correction **Tuesday, not Monday**, headache duration and after-work preference. A note added “doctor to confirm,” which was not explicitly said and should be removed during review.
+- B preserved uncertainty about Monday versus Tuesday, the $25-to-$60 correction in the transcript, work/childcare constraints and the absence of a booking. Notes retained unconfirmed cost and tentative Friday 4:30 availability. “Patient believes copay is $25” weakened the spoken correction; change it to “Previously thought $25; portal now says $60, unconfirmed.”
+- C distinguished all three voices and preserved that the patient had not agreed to the test and that no test had been ordered. The transcript rendered the name **Casey** as **“case he”** in one passage. A follow-up note's “finalize scheduling” was stronger than the office's stated plan to check availability and cost; retain the tentative wording.
+- No speaker swap was observed in these short, sequential synthetic turns. Natural overlap, an unidentified caregiver, multilingual conversations and real human microphone-to-AI quality were not evaluated. Browser recording and server validation were exercised separately with actual MediaRecorder WebM and a controlled audio stream.
+
+## Approved MP3 and native Firefox check
+
+The user explicitly approved uploading “Doctor-Patient Cost of Care Conversation - trimmed.mp3” to AssemblyAI and sending the derived transcript to Groq. The recording is 300.19 seconds and approximately 6.87 MiB. It produced **35 transcript turns**, two suggested roles (doctor and patient), and **13 note items** across discussion, explanations, decisions, follow-up and context.
+
+An isolated Firefox 157.0.1 profile using `http://127.0.0.1:3000` completed the actual UI workflow: `/api/transcribe` **200**, `/api/notes` **200**, and `/api/consultations` **201**. No browser network failure or application alert occurred. The text was saved locally as **Cost-of-care recording — AI draft**. A separate direct transcription check completed in 15.4 seconds. This recording has no independently verified reference transcript, so no accuracy percentage is reported.
+
+The draft captured recurring back pain, work/travel/parking costs, limited therapy coverage, alternative options and the proposed Tuesday phone follow-up. Manual review found a missing heating-pad recommendation and an insurance-cost statement summarized too broadly as therapy coverage. A statement of interest in alternatives should also be checked before interpreting it as agreement to treatment. The saved record is an AI draft, not a clinically reviewed record.
+
+During provider selection, `openai/gpt-oss-20b` intermittently failed structured-output validation on the longer text. The configured 120B model completed the recorded evaluations. No automatic switch or retry was introduced. Account limits and service availability can still interrupt future requests.
+
+## Release verification
+
+- 141 unit tests passed, covering provider contracts, bounded audio, failures, deadlines, evidence, real temporary SQLite storage and Markdown.
+- The complete browser suite passed 32 cases, with its missing-key case skipped because the local app was configured. That case then passed separately against a production server with all provider keys empty: all 33 browser cases were exercised successfully across those configurations.
+- Lint, TypeScript and the optimized production build passed. A keyless production process loaded the prepared sample, saved text, restarted, reopened the same record, deleted it and returned 404 afterward.
+- Desktop and 390-pixel mobile screens were inspected; mobile document width was 390 pixels with no horizontal overflow. Source navigation, focused-edit protection, cancellation, failed-save retention and sample labeling have browser regressions.
+- GitHub Actions is configured with Node 24, FFmpeg and the same checks. Hosted CI has not run because this repository has not been pushed.
+
+Demonstrate the live path when services respond. **Load sample consultation** provides a visibly labeled, editable fictional example without cloud calls; it demonstrates review, persistence and export rather than new transcription.
+
+## Historical Gemini protocol and investigation
+
+The following protocol and results describe the earlier Gemini implementation at the commits named in each record. Statements about unavailable or unverified generation below refer to that implementation, not the current AssemblyAI/Groq release.
 
 ## Purpose
 

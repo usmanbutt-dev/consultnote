@@ -1,10 +1,10 @@
 # ConsultNote Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. Task 1 is complete; Tasks 2–6 remain planned.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Tasks 1–6 are complete. The approved submission-day update supersedes the original Gemini-only provider details below. See `docs/ai-evaluation.md` for current verification and limitations.
 
-**Goal:** Deliver an interview-ready web app that records/uploads a fictional consultation, reviews a speaker-labeled transcript, generates source-linked notes with Gemini, and persists edited results.
+**Goal:** Deliver an interview-ready web app that records/uploads a fictional consultation, reviews a speaker-labeled transcript, generates source-linked notes with AssemblyAI/Groq, and persists edited results. Gemini remains an explicit transcription alternative.
 
-**Architecture:** One Next.js application owns the browser workflow and Node route handlers. Server-only modules validate audio, call Gemini, and persist consultations in SQLite. Users review transcript/role suggestions before generating notes.
+**Architecture:** One Next.js application owns the browser workflow and Node route handlers. Server-only modules validate audio, call the selected providers, and persist consultations in SQLite. Users review transcript/role suggestions before generating notes.
 
 **Tech Stack:** Node.js 24 LTS, npm, Next.js App Router, strict TypeScript, Tailwind CSS, `@google/genai`, Zod, `file-type`, `node:sqlite`, FFmpeg/ffprobe, Vitest, Playwright.
 
@@ -97,47 +97,47 @@ Implementation notes: SDK 2.29.0 uses `interactions.create` on `/v1beta/interact
 
 ### Task 4: Source-linked notes and editing
 
-**Files:** `src/lib/{gemini.ts,prompts.ts,evidence.ts}`, `src/app/api/notes/route.ts`, `src/components/{notes-editor.tsx,consultation-workspace.tsx}`, `tests/unit/notes.test.ts`, `tests/e2e/notes.spec.ts`.
+**Files:** `src/lib/{gemini.ts,prompts.ts,evidence.ts}`, `src/app/api/notes/route.ts`, `src/components/{notes-editor.tsx,consultation-workspace.tsx}`, `tests/unit/notes.test.ts`, `tests/e2e/submission.spec.ts`.
 
 **Interfaces:** Export `generateNotes(transcript: Transcript, assignments: SpeakerAssignment[]): Promise<NotesResult>`. Implement `POST /api/notes` using reviewed input and a server-computed `sourceDigest`. `NotesEditor` consumes `NotesResult` and emits note-item text edits; source links target transcript segment IDs.
 
-- [ ] Write failing tests for missing/foreign source references, unsupported or duplicate section kinds, source-digest changes, meaningful uncertainty, and empty AI output. Browser tests cover role correction before generation, plain-text rendering, source-link focus, and stale responses after a transcript/role edit.
-- [ ] Run `npm test -- tests/unit/notes.test.ts`; confirm failures name the missing behavior.
-- [ ] Implement the second bounded Gemini call and grounded note prompt. Include supported discussion/context; preserve uncertainties and return evidence for each note item. Validate request body size, response structure, and references.
-- [ ] Connect the explicit Generate notes action, editing, and source navigation. Confirm before clearing edited notes on transcript/role changes; retain the draft on failed generation. Use the source digest to reject responses for obsolete input.
-- [ ] Run focused unit/browser tests. Manually compare a fictional audio sample, reviewed transcript, and notes; source references alone are not an accuracy assertion.
-- [ ] Commit: `feat: generate editable consultation notes with transcript evidence`.
+- [x] Write failing tests for missing/foreign source references, unsupported or duplicate section kinds, source-digest changes, meaningful uncertainty, and empty AI output. Browser tests cover role correction before generation, plain-text rendering, source-link focus, and stale responses after a transcript/role edit.
+- [x] Run `npm test -- tests/unit/notes.test.ts`; confirm failures name the missing behavior.
+- [x] Implement the bounded Groq call and grounded note prompt under the approved provider update. Include supported discussion/context; preserve uncertainties and return evidence for each note item. Validate request body size, response structure, and references.
+- [x] Connect the explicit Generate notes action, editing, and source navigation. Confirm before clearing edited notes on transcript/role changes; retain the draft on failed generation. Use the source digest to reject responses for obsolete input.
+- [x] Run focused unit/browser tests. Manually compare a fictional audio sample, reviewed transcript, and notes; source references alone are not an accuracy assertion.
+- [x] Commit: `2df9596` (combined approved submission workflow).
 
 ### Task 5: Persistence, history, and Markdown export
 
-**Files:** `src/lib/{db.ts,markdown.ts}`, `src/app/api/consultations/route.ts`, `src/app/api/consultations/[id]/route.ts`, `src/components/{consultation-history.tsx,consultation-workspace.tsx}`, `tests/unit/{db.test.ts,markdown.test.ts}`, `tests/e2e/consultations.spec.ts`.
+**Files:** `src/lib/{db.ts,markdown.ts}`, `src/app/api/consultations/route.ts`, `src/app/api/consultations/[id]/route.ts`, `src/components/{consultation-history.tsx,consultation-workspace.tsx}`, `tests/unit/{db.test.ts,markdown.test.ts}`, `tests/e2e/submission.spec.ts`.
 
 **Interfaces:** Export `createConsultation(input: ConsultationInput): ConsultationRecord`, `listConsultations(): ConsultationSummary[]`, `getConsultation(id: string): ConsultationRecord | null`, `updateConsultation(id: string, input: ConsultationInput): ConsultationRecord | null`, `deleteConsultation(id: string): boolean`, and `toMarkdown(record: ConsultationRecord): string`. Initialize SQLite lazily at runtime with `DATABASE_PATH`; production build must not require a preexisting DB.
 
-- [ ] Write failing tests against a temporary real SQLite database: create/list/read/update/delete, reopening the database, preserved creation time, updated ordering, malformed IDs, nonexistent IDs, stale digest rejection, safe title/text round-trip, and storage failure. Export tests assert corrected roles, note sections, source references, and the transcript are preserved.
-- [ ] Run `npm test -- tests/unit/db.test.ts tests/unit/markdown.test.ts`; verify expected failures.
-- [ ] Implement the single-table prepared-statement store and all specified routes. Validate full payloads and evidence/digests before writes. Return stable server IDs/timestamps and the spec's not-found/storage errors.
-- [ ] Connect save/update, history, reopen, rename, confirmed deletion, and native Blob-based Markdown download. Preserve drafts on errors and confirm navigation/reset that would discard unsaved edits.
-- [ ] Run the unit tests and `npm run test:e2e -- tests/e2e/consultations.spec.ts`. Restart the app and reopen a saved fictional consultation; verify microphone/upload recordings are absent from the SQLite payload.
-- [ ] Commit: `feat: persist consultations and export reviewed notes`.
+- [x] Write failing tests against a temporary real SQLite database: create/list/read/update/delete, reopening the database, preserved creation time, updated ordering, malformed IDs, nonexistent IDs, stale digest rejection, safe title/text round-trip, and storage failure. Export tests assert corrected roles, note sections, source references, and the transcript are preserved.
+- [x] Run `npm test -- tests/unit/db.test.ts tests/unit/markdown.test.ts`; verify expected failures.
+- [x] Implement the single-table prepared-statement store and all specified routes. Validate full payloads and evidence/digests before writes. Return stable server IDs/timestamps and the spec's not-found/storage errors.
+- [x] Connect save/update, history, reopen, rename, confirmed deletion, and native Blob-based Markdown download. Preserve drafts on errors and confirm navigation/reset that would discard unsaved edits.
+- [x] Run the unit tests and `npm run test:e2e -- tests/e2e/submission.spec.ts`. Restart an isolated production app and reopen a saved fictional consultation; verify recordings are absent from the SQLite payload.
+- [x] Commit: `2df9596` (combined approved submission workflow).
 
 ### Task 6: Interview release and repeatable verification
 
-**Files:** `.github/workflows/ci.yml`, `tests/e2e/workflow.spec.ts`, `docs/{ai-evaluation.md,demo.md}`, `README.md`, relevant UI files requiring final accessibility/responsive fixes.
+**Files:** `.github/workflows/ci.yml`, `tests/e2e/submission.spec.ts`, `docs/{ai-evaluation.md,demo.md}`, `README.md`, relevant UI files requiring final accessibility/responsive fixes.
 
-**Interfaces:** Existing npm scripts become the documented verification contract. CI installs the locked dependencies and FFmpeg, uses a temporary ignored SQLite database, and stubs Gemini at the HTTP boundary. Live evaluations remain manual and separately labeled.
+**Interfaces:** Existing npm scripts become the documented verification contract. CI installs the locked dependencies and FFmpeg, uses a temporary ignored SQLite database, and stubs provider responses at the HTTP boundary. Live evaluations remain manual and separately labeled.
 
-- [ ] Add browser regressions for the full upload-to-save/reopen/export flow, keyboard source navigation, narrow-screen transcript/notes tabs, destructive navigation cancellation, and saved-example labeling during a provider failure. Use synthetic audio and no paid/cloud calls in CI.
-- [ ] Run the new browser cases and fix only demonstrated workflow/accessibility defects. Check visible focus, labels, status announcements, disabled duplicate actions, and long transcript/note layout at desktop and narrow widths.
-- [ ] Add CI running `npm ci`, `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`, Playwright browser installation, and `npm run test:e2e`. Verify the same commands locally with no live key for automated checks.
-- [ ] Evaluate at least three fictional recordings using `docs/ai-evaluation.md`, including ambiguity/nonmedical context and interruptions or noise. Record observed transcript, speaker, role, evidence, and note errors rather than claiming a preset accuracy score. Keep live-access failures explicit.
-- [ ] Write `docs/demo.md`: prerequisites, local setup, key configuration, five-minute demonstration, architecture explanation, measured limitations, and a clearly labeled saved-example fallback. Update README from planned to implemented only for delivered features.
-- [ ] Run the complete verification contract, review the diff for secrets/unrelated changes, and confirm `git status --short` is clean after committing. Summarize any unverified live API behavior separately.
-- [ ] Commit: `chore: prepare verified interview demonstration`.
+- [x] Add browser regressions for the full upload-to-save/reopen/export flow, keyboard source navigation, narrow-screen transcript/notes tabs, destructive navigation cancellation, and saved-example labeling during a provider failure. Use synthetic audio and no paid/cloud calls in CI.
+- [x] Run the new browser cases and fix only demonstrated workflow/accessibility defects. Check visible focus, labels, status announcements, disabled duplicate actions, and long transcript/note layout at desktop and narrow widths.
+- [x] Add CI running `npm ci`, `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`, Playwright browser installation, and `npm run test:e2e`. Verify the same commands locally with no live key for automated checks.
+- [x] Evaluate at least three fictional recordings using `docs/ai-evaluation.md`, including ambiguity/nonmedical context and interruptions or noise. Record observed transcript, speaker, role, evidence, and note errors rather than claiming a preset accuracy score. Keep live-access failures explicit.
+- [x] Write `docs/demo.md`: prerequisites, local setup, key configuration, five-minute demonstration, architecture explanation, measured limitations, and a clearly labeled saved-example fallback. Update README from planned to implemented only for delivered features.
+- [x] Run the complete verification contract, review the diff for secrets/unrelated changes, and confirm `git status --short` is clean after committing. Summarize any unverified live API behavior separately.
+- [x] Commit: final reviewed-fixes and release-verification commit.
 
 ## Implementation handoff
 
-Milestone 1 is implemented. Subsequent execution starts with Task 2, audio capture and validated uploads. Keep mock-based software verification separate from real Gemini quality evaluation. A remote repository, public deployment, or paid service activation requires a subsequent explicit instruction.
+Tasks 1–6 are implemented. Core remaining workflow landed in `2df9596`; final review fixes and release verification follow on `feat/submission-workflow`. Controlled software verification is separate from the live evaluations documented in `docs/ai-evaluation.md`. A remote repository, public deployment, or paid service activation requires a subsequent explicit instruction.
 
 ## Approved submission-day execution update
 

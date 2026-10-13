@@ -2,7 +2,7 @@
 
 Date: 2026-10-13
 
-Status: Approved baseline; Milestone 1 implemented
+Status: Approved baseline with submission-day provider update; Tasks 1–6 implemented and locally verified
 
 Project: `C:\Personal\Repositories\consultnote`
 
@@ -10,7 +10,7 @@ Project: `C:\Personal\Repositories\consultnote`
 
 Build a professional web application that demonstrates an audio-to-notes workflow in an interview. A user records or uploads a doctor-patient conversation, reviews a speaker-labeled transcript and suggested roles, generates grounded notes, and edits or saves the result.
 
-The user confirmed microphone recording, uploaded recordings, speaker distinction, doctor/patient identification, notes covering all communication, Gemini first, and Git version control. The approved implementation currently covers Milestone 1: the application shell and validated domain contracts. Audio capture, AI processing, and persistence remain planned milestones.
+The user confirmed microphone recording, uploaded recordings, speaker distinction, doctor/patient identification, notes covering the communication, Gemini first, and Git version control. All six milestones are implemented. After Gemini overload/timeouts, the approved submission-day update made AssemblyAI/Groq the default; Gemini remains explicitly selectable. The original design below is interpreted with that appended provider update.
 
 Working defaults are a single user running the application locally, desktop Chrome/Edge for recording, responsive review screens, and English evaluation samples. These are scope choices rather than user-supplied requirements. Mixed-language quality is unverified.
 

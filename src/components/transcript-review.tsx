@@ -23,12 +23,14 @@ export function TranscriptReview({
   disabled = false,
   onTranscriptChange,
   onAssignmentsChange,
+  onPendingEdit,
 }: {
   transcript: Transcript;
   assignments: SpeakerAssignment[];
   disabled?: boolean;
   onTranscriptChange: (transcript: Transcript) => boolean | void;
   onAssignmentsChange: (assignments: SpeakerAssignment[]) => void;
+  onPendingEdit?: () => void;
 }) {
   const [error, setError] = useState("");
 
@@ -130,6 +132,7 @@ export function TranscriptReview({
                 disabled={disabled}
                 rows={3}
                 className="w-full resize-y rounded-md border border-slate-200 bg-white p-2 text-xs leading-6 text-slate-700 disabled:opacity-60"
+                onInput={onPendingEdit}
                 onBlur={(event) => {
                   const next = transcriptSchema.safeParse({
                     ...transcript,

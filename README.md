@@ -70,6 +70,7 @@ One Next.js App Router application uses TypeScript, Tailwind, Zod, native browse
 - [Product design](docs/superpowers/specs/2026-10-13-consultnote-design.md)
 - [Implementation plan](docs/superpowers/plans/2026-10-13-consultnote.md)
 - [Measured AI behavior and limitations](docs/ai-evaluation.md)
+- [Implementation decisions and tradeoffs](docs/implementation-decisions.md)
 
 Source IDs are validated; factual accuracy still requires review against the audio. Models can misattribute statements, infer unsupported agreement, omit context or swap speakers. This is a fictional-data, single-user localhost interview demonstration, with no clinical-readiness claim. Public deployment and access control are separate work.
 
