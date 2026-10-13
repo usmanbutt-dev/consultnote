@@ -144,3 +144,14 @@ Official sources checked on 2026-10-13:
 - [Microphone access](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia) and [MediaRecorder](https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder): browser recording and secure contexts.
 
 Speaker attribution, transcript completeness, role inference, and note accuracy are probabilistic. This is a reviewed interview demonstration using fictional data; it makes no clinical-readiness or accuracy-percentage claim.
+
+## Submission-day provider update — approved 2026-10-13
+
+The user accepted the AssemblyAI/Groq replacement proposal and supplied both keys to complete the project for today's submission. This supersedes the Gemini-first processing requirement above; domain, evidence, storage and UI contracts remain in force.
+
+- Default transcription uses AssemblyAI's upload/transcript API with speaker labels and automatic language detection. Polling reads one submitted job; it does not resubmit generation. Groq suggests roles from the resulting text, preserving unknown roles and provider speaker boundaries.
+- Groq `openai/gpt-oss-20b` generates notes from the reviewed transcript/assignments. Validate JSON, evidence references and the source digest. Each action is bounded by 120 seconds, with no automatic generation retries or silent model substitution.
+- Keep the existing Gemini adapter as an explicitly configured transcription alternative. `TRANSCRIPTION_PROVIDER=assemblyai` selects the new path; `gemini` selects the original one. Credentials remain server-only. The interface identifies where audio and transcript text are sent.
+- Finish original Tasks 4–6: editable grounded notes, stale-note prevention, SQLite CRUD/history and Markdown export. Use Node 24's built-in SQLite API to avoid native dependency installation.
+- Add an explicit **Load sample consultation** action. The prepared fictional transcript and notes are labeled as saved sample material, including after saving/reopening, and never presented as processing the user's audio. This path requires no external API.
+- Verify the actual five-minute MP3 with the new providers, then the application flow. Automated checks remain independent of cloud access. Record live quality limitations, do not claim clinical readiness, and do not deploy or publish a remote.

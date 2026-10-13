@@ -138,3 +138,13 @@ Implementation notes: SDK 2.29.0 uses `interactions.create` on `/v1beta/interact
 ## Implementation handoff
 
 Milestone 1 is implemented. Subsequent execution starts with Task 2, audio capture and validated uploads. Keep mock-based software verification separate from real Gemini quality evaluation. A remote repository, public deployment, or paid service activation requires a subsequent explicit instruction.
+
+## Approved submission-day execution update
+
+Resume after completed Tasks 1–3. The user supplied AssemblyAI/Groq keys after accepting the replacement proposal; execute the remaining workflow inline without another milestone pause.
+
+1. Provider boundary: add `src/lib/{assemblyai,groq,ai}.ts`; retain Gemini. Test job polling, speaker/timestamp normalization, role references, authentication/quota/deadlines and safe errors. Verify one live MP3 request before relying on this path.
+2. Task 4: implement `POST /api/notes`, Groq evidence-linked notes and `NotesEditor`. Test foreign evidence rejection, stale generation and preservation of edits after failures.
+3. Task 5: implement existing SQLite/HTTP/Markdown contracts using `node:sqlite`; test real temporary databases, stale digest rejection, CRUD, restart persistence and export contents.
+4. Task 6: wire complete workspace/history, explicit sample loading and persistent sample labeling. Test upload → review → notes → save → reopen → export, failures, confirmations and mobile navigation. Document setup and the five-minute interview demonstration.
+5. Run the full existing verification contract, inspect desktop/mobile screenshots, obtain one fresh whole-branch review, address important findings and commit a clean local branch. Live output is evaluated separately from controlled browser tests.
