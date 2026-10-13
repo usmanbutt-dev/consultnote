@@ -1,0 +1,30 @@
+project_id = "consultnote"
+
+[db]
+major_version = 17
+
+[db.migrations]
+enabled = true
+
+[db.seed]
+enabled = false
+sql_paths = []
+
+[auth]
+enabled = true
+site_url = "https://consultnote.vercel.app"
+additional_redirect_urls = ["https://consultnote.vercel.app/auth/callback", "https://consultnote.vercel.app/auth/callback?next=/reset-password", "http://127.0.0.1:3000/**", "http://localhost:3000/**"]
+minimum_password_length = 8
+enable_signup = true
+enable_anonymous_sign_ins = false
+
+# Interview demo: immediate signup. Configure SMTP before enabling confirmation.
+[auth.email]
+enable_signup = true
+enable_confirmations = false
+max_frequency = "1m0s"
+otp_length = 8
+
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true

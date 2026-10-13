@@ -1,5 +1,15 @@
 # AI evaluation and interview demonstration
 
+## Hosted account and storage verification — 2026-10-14
+
+[Production](https://consultnote.vercel.app) is deployed to Vercel Hobby, backed by the user's confirmed Supabase Free organization. Both versioned migrations were applied through Supabase CLI and remote migration history matches. The private GitHub repository is connected to Vercel. Immediate signup is enabled by user choice; email confirmation and public password-reset delivery await custom SMTP.
+
+Live browser and SDK checks passed with disposable fictional doctors: signup and server-verified sessions; profile edits surviving reload; photo upload, replacement, removal and private retrieval; signed-in password changes; sign-out and login with the new password; cloud consultation saving and PDF download; direct private audio upload and Linux `ffprobe` validation; two-account RLS isolation for profiles/consultations and denied foreign audio/avatar reads; wrong-password deletion rejection; confirmed deletion cascading through records and removing owned Storage; and denial of a deleted account's stale session. All generated QA accounts/files were cleaned up. No AI-provider calls were made during these hosting checks.
+
+The first upload check identified a deployment configuration error: Supabase CLI's default API-key listing masks the modern server key. Explicit `--reveal` retrieval into ignored files, a Vercel secret update and redeployment corrected it; subsequent live profile/photo and deletion checks passed. A separate early form-test failure came from filling SSR inputs before hydration; waiting for page readiness resolved it without application changes.
+
+The deployed Vercel build passed. The preceding application milestone passed 210 unit tests and 50 isolated production browser tests; this hosting change modifies configuration/docs only. Hosted AI completion, real Urdu/mixed recordings and SMTP delivery remain outside the completed checks.
+
 ## Doctor account verification — 2026-10-14
 
 Signup/login, confirmation and recovery UI, minor profile edits, private photo handling and password-confirmed self-deletion are implemented. Account server and form checks use controlled Supabase/API responses; no live email, authentication or AI requests were made. The workspace keeps recorded speaker names distinct from the account owner, with optional speaker correction.

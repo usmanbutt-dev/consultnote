@@ -1,5 +1,11 @@
 # Implementation decisions and tradeoffs
 
+## Hosted interview demo — 2026-10-14
+
+The private GitHub repository is connected to Vercel Hobby, with Supabase Free for Auth/Postgres/Storage. CLI configuration uses a small committed `supabase/config.toml`, two versioned migrations and ignored project-link metadata. Provider/server keys are Vercel secrets; local environment files, SQLite data, recordings and diagnostic output are explicitly excluded from CLI uploads. Full modern server-key retrieval requires Supabase CLI's `--reveal` option; default masked values cannot authenticate privileged operations.
+
+The user chose immediate signup and deferred SMTP. Email confirmation is disabled for this fictional-data demo; signed-in password changes work, while public password-reset email delivery remains pending. Both ordinary and password-recovery production callbacks are explicitly allowed alongside local development origins. Live account/private storage/deletion checks passed; details and remaining AI/email checks are in the evaluation record.
+
 ## Doctor accounts and private profiles — 2026-10-14
 
 Supabase remains the account provider. Signup records a name; the Auth trigger creates a private doctor profile, with backfill for existing users. Profile editing permits name, specialty and clinic only. Email remains read-only; password recovery/change is separate. Photos use a private bucket, generated owner-scoped paths, bounded signature-checked JPEG/PNG/WebP uploads and an authenticated image endpoint. Initials replace absent or unreadable photos. The former Help icon becomes an account menu with My profile and local Sign out.

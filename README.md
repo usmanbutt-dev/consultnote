@@ -2,7 +2,9 @@
 
 AI-assisted doctor–patient conversation notes with transcript evidence and human review.
 
-**Implemented:** microphone/upload, automatic English/Urdu/mixed input with English transcript and notes, optional speaker correction, clinician chart notes with editable sources, history, rename/delete and PDF, plain-text or Markdown downloads. One **Create notes** action processes audio into a draft. Notes appear first; **View conversation** opens the transcript alongside them on wide desktop screens or switches views on smaller screens. Doctor signup/login, password recovery, private profiles/photos and account deletion are implemented; Supabase configuration and live account checks remain pending. AssemblyAI/Groq is the default processing path. A clearly labeled sample works without external APIs.
+**Live demo:** [consultnote.vercel.app](https://consultnote.vercel.app). Hosted on Vercel Hobby with a separate Supabase Free project. Signup is immediate for this fictional-data interview demo; email confirmation is disabled and password-reset email delivery awaits custom SMTP.
+
+**Implemented:** microphone/upload, automatic English/Urdu/mixed input with English transcript and notes, optional speaker correction, clinician chart notes with editable sources, history, rename/delete and PDF, plain-text or Markdown downloads. One **Create notes** action processes audio into a draft. Notes appear first; **View conversation** opens the transcript alongside them on wide desktop screens or switches views on smaller screens. Doctor signup/login, signed-in password changes, private profiles/photos and account deletion are implemented and live account checks passed. AssemblyAI/Groq is the default processing path. A clearly labeled sample works without external APIs.
 
 ## Run locally
 
@@ -31,7 +33,7 @@ AssemblyAI offers [trial credits](https://support.assemblyai.com/articles/537076
 
 For accounts, online storage and hosting, follow [Supabase and Vercel setup](docs/deployment.md). Leaving Supabase unset keeps local SQLite mode. On Vercel, missing cloud configuration blocks access instead of enabling local anonymous processing.
 
-The avatar menu replaces Help. Signed-in doctors can edit their name, specialty, clinic and photo under **My profile**, change passwords, or permanently delete their account after entering their current password and typing DELETE. The account name identifies the workspace owner; speaker names still come from the recording. **Correct speaker labels** keeps manual corrections available without a permanent selection panel. Supabase migrations, CLI/project connection and Vercel deployment are deferred until the user proceeds with setup; local drafts are preserved.
+The avatar menu replaces Help. Signed-in doctors can edit their name, specialty, clinic and photo under **My profile**, change passwords, or permanently delete their account after entering their current password and typing DELETE. The account name identifies the workspace owner; speaker names still come from the recording. **Correct speaker labels** keeps manual corrections available without a permanent selection panel. Supabase migrations are applied and the private GitHub repository is connected to Vercel. Existing SQLite drafts are not automatically imported into cloud accounts.
 
 The original Gemini adapter remains available with `TRANSCRIPTION_PROVIDER=gemini`, `GEMINI_API_KEY` and `GEMINI_MODEL=gemini-3.8-flash`. There is no automatic provider/model substitution after a failed request. Gemini overload diagnostics and the replacement's live checks are documented in [AI evaluation](docs/ai-evaluation.md).
 
@@ -84,6 +86,6 @@ One Next.js App Router application uses TypeScript, Tailwind, Zod, native browse
 - [Supabase and Vercel setup](docs/deployment.md)
 - [Clinician/cloud design](docs/superpowers/specs/2026-10-13-clinician-cloud-design.md)
 
-Source IDs are validated; factual accuracy still requires review against audio. Models can misattribute statements, infer unsupported agreement, omit context or swap speakers. This remains a fictional-data interview demonstration. Cloud integration is prepared, but live two-account isolation and hosted execution must be checked after Supabase setup. Urdu speech quality also needs a representative recording.
+Source IDs are validated; factual accuracy still requires review against audio. Models can misattribute statements, infer unsupported agreement, omit context or swap speakers. This remains a fictional-data interview demonstration. Live account, two-account isolation, cloud saving, PDF download and hosted Linux audio-validation checks passed. These checks made no AI calls; hosted AI completion and Urdu speech quality still need representative recordings. Password-reset email delivery awaits SMTP setup.
 
-The repository remains local. Keys, recordings, SQLite data and diagnostic artifacts are Git-ignored. Include source, tests, documentation, `.env.example` and `package-lock.json` in a submission; exclude actual environment files and local data.
+The source is versioned in the private [usmanbutt-dev/consultnote](https://github.com/usmanbutt-dev/consultnote) repository, with `main` connected to Vercel. Keys, recordings, SQLite data and diagnostic artifacts are Git-ignored and explicitly excluded from CLI deployment uploads. Include source, tests, documentation, `.env.example` and `package-lock.json` in a submission; exclude actual environment files and local data.

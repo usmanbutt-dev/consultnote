@@ -1,6 +1,12 @@
 # Supabase and Vercel setup
 
-The local app works now with SQLite. Account/profile code and versioned cloud migrations are implemented. Supabase CLI/project setup, real authentication/email/RLS/Storage checks, repository connection and Vercel deployment are deliberately deferred at the user's request. Existing local drafts stay in SQLite and are not automatically uploaded.
+The live demo is [consultnote.vercel.app](https://consultnote.vercel.app), deployed to Vercel Hobby from the private [GitHub repository](https://github.com/usmanbutt-dev/consultnote). Supabase project `ddufzrnfobkawrfvdkec` (`consultnote`, Mumbai) is in the user's confirmed Free organization; both migrations are applied. The sections below describe reproducible setup and verification. Existing local drafts stay in SQLite and are not automatically uploaded.
+
+Signup is immediate by the user's choice for this fictional-data interview demo. Email ownership is not verified. Signed-in password changes are available; public password-reset email delivery remains pending until custom SMTP is configured. Production login and recovery callback URLs are registered alongside the local callbacks in `supabase/config.toml`.
+
+CLI versions used: Supabase 2.120.0 and Vercel 64.0.2. Supabase's API-key listing masks secret keys by default; retrieve the full server key with `supabase projects api-keys --reveal` into a private local file or pipe, never terminal logs or Git. Provider/server keys are stored as Vercel secrets for Production and Preview. `.vercelignore` excludes environment files, local databases, recordings and diagnostic output from CLI uploads.
+
+Live checks passed for signup/session, profile/photo CRUD, password changes, sign-out/login, cloud saving and PDF download, direct audio upload with Linux validation, two-account database/Storage isolation and password-confirmed deletion with owned-file cleanup. Disposable QA accounts/files were removed. No AI-provider calls were made; actual hosted transcription/notes completion and deferred SMTP still require separate checks.
 
 ## 1. Create the free Supabase project
 

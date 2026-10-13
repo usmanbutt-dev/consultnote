@@ -1,0 +1,12 @@
+.env*
+.data/
+.superpowers/
+.codegraph/
+uploads/
+tmp/
+*.sqlite*
+*.db*
+*.log
+coverage/
+test-results/
+playwright-report/
