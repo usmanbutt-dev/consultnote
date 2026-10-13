@@ -1,0 +1,22 @@
+{
+  "sections": [
+    {
+      "kind": "discussion",
+      "items": [
+        {
+          "text": "Patient reported headaches and was uncertain whether they began Monday.",
+          "segmentIds": ["segment-2"]
+        }
+      ]
+    },
+    {
+      "kind": "followUp",
+      "items": [
+        {
+          "text": "Follow-up conversation proposed for Friday at 5:30, accommodating the patient's work schedule.",
+          "segmentIds": ["segment-3", "segment-4"]
+        }
+      ]
+    }
+  ]
+}

@@ -2,7 +2,7 @@
 
 Date: 2026-10-13
 
-Status: Proposed implementation baseline, ready for review
+Status: Approved baseline; Milestone 1 implemented
 
 Project: `C:\Personal\Repositories\consultnote`
 
@@ -10,7 +10,7 @@ Project: `C:\Personal\Repositories\consultnote`
 
 Build a professional web application that demonstrates an audio-to-notes workflow in an interview. A user records or uploads a doctor-patient conversation, reviews a speaker-labeled transcript and suggested roles, generates grounded notes, and edits or saves the result.
 
-The user confirmed microphone recording, uploaded recordings, speaker distinction, doctor/patient identification, notes covering all communication, Gemini first, and Git version control. The immediate deliverable is the repository and plan; application code follows in a subsequent phase.
+The user confirmed microphone recording, uploaded recordings, speaker distinction, doctor/patient identification, notes covering all communication, Gemini first, and Git version control. The approved implementation currently covers Milestone 1: the application shell and validated domain contracts. Audio capture, AI processing, and persistence remain planned milestones.
 
 Working defaults are a single user running the application locally, desktop Chrome/Edge for recording, responsive review screens, and English evaluation samples. These are scope choices rather than user-supplied requirements. Mixed-language quality is unverified.
 
@@ -103,7 +103,7 @@ Compute `sourceDigest` with Node's `createHash` over `JSON.stringify({ transcrip
 | `PATCH /api/consultations/:id` | Complete `ConsultationInput` replacement | `ConsultationRecord`; preserve ID and creation time |
 | `DELETE /api/consultations/:id` | UUID path | `204` |
 
-Errors use `{ error: { code, message } }`: `INVALID_INPUT` (400), `NOT_FOUND` (404), `AUDIO_TOO_LARGE` (413), `UNSUPPORTED_AUDIO` (415), `NO_SPEECH` (422), `INVALID_AI_OUTPUT` (502), `AI_AUTH_FAILED` (502), `AI_UNAVAILABLE` (503), `AI_QUOTA_EXCEEDED` (429), `AI_TIMEOUT` (504), and `STORAGE_FAILED` (500). Browser-permission failures stay client-side. Hide raw provider responses, credentials, and private payloads from errors/logs. Bound JSON request bodies to 1 MiB and reject malformed UUIDs before storage access.
+Errors use `{ error: { code, message } }`: `INVALID_INPUT` (400), `NOT_FOUND` (404), `AUDIO_TOO_LARGE` (413), `UNSUPPORTED_AUDIO` (415), `NO_SPEECH` (422), `INVALID_AI_OUTPUT` (502), `AI_AUTH_FAILED` (502), `AI_UNAVAILABLE` (503), `AI_QUOTA_EXCEEDED` (429), `AI_TIMEOUT` (504), `STORAGE_FAILED` (500), and `INTERNAL_ERROR` (500) for unexpected failures. Browser-permission failures stay client-side. Hide raw provider responses, credentials, and private payloads from errors/logs. Bound JSON request bodies to 1 MiB and reject malformed UUIDs before storage access.
 
 One SQLite table, `consultations`, stores `id`, `title`, `created_at`, `updated_at`, and `payload_json` containing the complete validated record. Use prepared statements and atomic statements. Initialize the database under `DATABASE_PATH`, default `.data/consultnote.sqlite`. No audio blobs go in the database. A failed save leaves the current draft available.
 

@@ -1,0 +1,58 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+:root {
+  color-scheme: light;
+  background: #f6f8fa;
+  color: #203148;
+  font-family: var(--font-sans);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+}
+
+button,
+summary,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:not(:disabled),
+summary {
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 3px solid #0f766e;
+  outline-offset: 4px;
+}
+
+::selection {
+  background: #ccfbf1;
+  color: #134e4a;
+}
+
+.soft-panel {
+  border: 1px solid #e1e7ec;
+  border-radius: 16px;
+  background: white;
+  box-shadow: 0 2px 5px rgb(28 49 73 / 2%);
+}
+
+.capture-surface {
+  background:
+    radial-gradient(ellipse at 50% 100%, #f0f9f7, transparent 65%), #fcfdfd;
+}
+
+.microphone-ring {
+  box-shadow:
+    0 0 0 8px #f0f8f6,
+    0 0 0 9px #e5f1ed;
+}

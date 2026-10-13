@@ -4,6 +4,7 @@ node_modules/
 out/
 dist/
 *.tsbuildinfo
+next-env.d.ts
 
 # Secrets
 .env*
@@ -25,6 +26,7 @@ coverage/
 playwright-report/
 test-results/
 .codegraph/
+.superpowers/
 *.log
 
 # Editor and operating-system files

@@ -1,6 +1,6 @@
 # ConsultNote Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. This plan is ready for review; implementation is a subsequent phase.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. Task 1 is complete; Tasks 2–6 remain planned.
 
 **Goal:** Deliver an interview-ready web app that records/uploads a fictional consultation, reviews a speaker-labeled transcript, generates source-linked notes with Gemini, and persists edited results.
 
@@ -53,16 +53,16 @@ Use `@/*` as the `src/*` import alias. Unit tests use Vitest's Node environment;
 
 ### Task 1: Application foundation and domain contracts
 
-**Files:** `package.json`, `package-lock.json`, Next/TypeScript/ESLint/PostCSS/Vitest/Playwright configuration, `src/app/{layout.tsx,page.tsx,globals.css}`, `src/lib/{consultation.ts,evidence.ts,http.ts}`, `tests/unit/consultation.test.ts`, `tests/fixtures/{transcript.json,notes.json}`, `README.md`.
+**Files:** `package.json`, `package-lock.json`, Next/TypeScript/ESLint/PostCSS/Vitest/Playwright configuration, `src/app/{layout.tsx,page.tsx,globals.css,icon.svg}`, `src/components/consultation-workspace.tsx`, `src/lib/{consultation.ts,evidence.ts,http.ts}`, `tests/unit/{consultation.test.ts,http.test.ts}`, `tests/e2e/workspace.spec.ts`, `tests/fixtures/{transcript.json,notes.json}`, `README.md`.
 
 **Interfaces:** Export the spec's domain types and `transcriptSchema`, `assignmentsSchema`, `notesSchema`, `consultationInputSchema`. Export `validateNotes(notes: Notes, transcript: Transcript): void`, `sourceDigest(transcript: Transcript, assignments: SpeakerAssignment[]): string`, and `ApiError(code, message, status)` with `errorResponse(error: unknown): Response`. Place bounded JSON/multipart helpers in `http.ts` as later tasks require them.
 
-- [ ] Scaffold manually in the existing repository, preserving its planning documents. Configure npm scripts `dev`, `build`, `start`, `lint`, `typecheck`, `test`, and `test:e2e`. Use `next dev --hostname 127.0.0.1` and `next start --hostname 127.0.0.1` for local demo scripts. Resolve compatible stable dependencies, including Zod JSON-schema conversion, and commit the lockfile.
-- [ ] Write failing tests: `rejectsDuplicateSpeakerIds`, `rejectsUnknownSegmentSpeaker`, `retainsThirdUnknownSpeaker`, `rejectsMissingEvidence`, `rejectsUnknownEvidenceId`, `rejectsDuplicateSectionKinds`, `digestChangesWhenTranscriptOrRolesChange`, and `digestIgnoresAssignmentOrder`. Use the spec's exact bounds and enums; fixtures describe a fictional consultation with explicit decisions and uncertainty.
-- [ ] Run `npm test -- tests/unit/consultation.test.ts`; verify failures identify the unimplemented contracts.
-- [ ] Implement the schemas, relational checks, canonical digest, and safe error helper. Implement a responsive shell with a consultation sidebar, empty workspace, and labeled controls. Add no AI calls in client modules.
-- [ ] Run the focused tests, `npm run lint`, `npm run typecheck`, and `npm run build`; verify exit code 0. The application must build with no Gemini key.
-- [ ] Commit: `feat: establish application foundation and consultation contracts`.
+- [x] Scaffold manually in the existing repository, preserving its planning documents. Configure npm scripts `dev`, `build`, `start`, `lint`, `typecheck`, `test`, and `test:e2e`. Use `next dev --hostname 127.0.0.1` and `next start --hostname 127.0.0.1` for local demo scripts. Resolve compatible stable dependencies, including Zod JSON-schema conversion, and commit the lockfile.
+- [x] Write failing tests: `rejectsDuplicateSpeakerIds`, `rejectsUnknownSegmentSpeaker`, `retainsThirdUnknownSpeaker`, `rejectsMissingEvidence`, `rejectsUnknownEvidenceId`, `rejectsDuplicateSectionKinds`, `digestChangesWhenTranscriptOrRolesChange`, and `digestIgnoresAssignmentOrder`. Use the spec's exact bounds and enums; fixtures describe a fictional consultation with explicit decisions and uncertainty.
+- [x] Run `npm test -- tests/unit/consultation.test.ts`; verify failures identify the unimplemented contracts.
+- [x] Implement the schemas, relational checks, canonical digest, and safe error helper. Implement a responsive shell with a consultation sidebar, empty workspace, and labeled controls. Add no AI calls in client modules.
+- [x] Run the focused tests, `npm run lint`, `npm run typecheck`, `npm run build`, and `npm run test:e2e`; verify exit code 0. The application must build with no Gemini key.
+- [x] Commit: `feat: establish application foundation and consultation contracts`.
 
 ### Task 2: Audio capture and validated upload
 
@@ -133,4 +133,4 @@ Use `@/*` as the `src/*` import alias. Unit tests use Vitest's Node environment;
 
 ## Implementation handoff
 
-The current repository contains planning/configuration documents only. Review this design and plan before application implementation. Execute milestones in order; keep mock-based software verification separate from real Gemini quality evaluation. A remote repository, public deployment, or paid service activation requires a subsequent explicit instruction.
+Milestone 1 is implemented. Subsequent execution starts with Task 2, audio capture and validated uploads. Keep mock-based software verification separate from real Gemini quality evaluation. A remote repository, public deployment, or paid service activation requires a subsequent explicit instruction.
