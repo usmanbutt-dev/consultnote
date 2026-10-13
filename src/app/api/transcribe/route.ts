@@ -1,5 +1,5 @@
 import { readAudioRequest } from "@/lib/audio";
-import { transcribeAudio } from "@/lib/gemini";
+import { transcribeAudio } from "@/lib/ai";
 import { errorResponse } from "@/lib/http";
 
 export const runtime = "nodejs";

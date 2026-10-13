@@ -1,8 +1,8 @@
 import { ConsultationWorkspace } from "@/components/consultation-workspace";
-import { isGeminiConfigured } from "@/lib/gemini";
+import { processingConfiguration } from "@/lib/ai";
 import { connection } from "next/server";
 
 export default async function HomePage() {
   await connection();
-  return <ConsultationWorkspace geminiConfigured={isGeminiConfigured()} />;
+  return <ConsultationWorkspace configuration={processingConfiguration()} />;
 }

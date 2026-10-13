@@ -1,0 +1,45 @@
+{
+  "durationSeconds": 90,
+  "speakers": [
+    {
+      "id": "speaker-1",
+      "suggestedRole": "doctor",
+      "reason": "Introduces themselves as the doctor."
+    },
+    {
+      "id": "speaker-2",
+      "suggestedRole": "patient",
+      "reason": "Describes their concern and availability."
+    }
+  ],
+  "segments": [
+    {
+      "id": "segment-1",
+      "speakerId": "speaker-1",
+      "startSeconds": 0,
+      "endSeconds": 8,
+      "text": "I'm your doctor today. What would you like to discuss?"
+    },
+    {
+      "id": "segment-2",
+      "speakerId": "speaker-2",
+      "startSeconds": 9,
+      "endSeconds": 28,
+      "text": "I've had headaches. They might have started Monday, but I'm not sure."
+    },
+    {
+      "id": "segment-3",
+      "speakerId": "speaker-2",
+      "startSeconds": 30,
+      "endSeconds": 45,
+      "text": "I finish work at five, so an afternoon follow-up would help."
+    },
+    {
+      "id": "segment-4",
+      "speakerId": "speaker-1",
+      "startSeconds": 47,
+      "endSeconds": 65,
+      "text": "Let's schedule our follow-up conversation for Friday at five thirty."
+    }
+  ]
+}

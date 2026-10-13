@@ -1,6 +1,6 @@
 import { beforeEach, expect, it, vi } from "vitest";
 import { POST } from "@/app/api/transcribe/route";
-import { transcribeAudio } from "@/lib/gemini";
+import { transcribeAudio } from "@/lib/ai";
 import { ApiError } from "@/lib/http";
 import { audioRequest } from "../fixtures/wav";
 import fixture from "../fixtures/transcript.json";
@@ -8,7 +8,7 @@ import { transcriptSchema } from "@/lib/consultation";
 
 const transcript = transcriptSchema.parse(fixture);
 
-vi.mock("@/lib/gemini", () => ({ transcribeAudio: vi.fn() }));
+vi.mock("@/lib/ai", () => ({ transcribeAudio: vi.fn() }));
 beforeEach(() => {
   vi.mocked(transcribeAudio).mockReset();
 });

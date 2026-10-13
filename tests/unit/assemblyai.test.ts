@@ -1,0 +1,141 @@
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { transcribeWithAssemblyAI } from "@/lib/assemblyai";
+
+vi.mock("server-only", () => ({}));
+const audio = {
+  bytes: new Uint8Array([1, 2]),
+  mimeType: "audio/wav",
+  durationSeconds: 30,
+};
+const completed = {
+  status: "completed",
+  speech_model_used: "universal-3-pro",
+  text: "Hello. Hi.",
+  utterances: [
+    { speaker: "A", start: 0, end: 1000, text: "Hello." },
+    { speaker: "B", start: 1200, end: 2000, text: "Hi." },
+  ],
+};
+beforeEach(() => vi.stubEnv("ASSEMBLYAI_API_KEY", "private-test-key"));
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
+  vi.useRealTimers();
+});
+function responses(...values: unknown[]) {
+  const fetch = vi.fn();
+  values.forEach((value) => fetch.mockResolvedValueOnce(Response.json(value)));
+  vi.stubGlobal("fetch", fetch);
+  return fetch;
+}
+it("submits once and maps diarized utterances to measured seconds and stable speaker IDs", async () => {
+  const fetch = responses(
+    { upload_url: "https://cdn.assemblyai.com/upload/test" },
+    { id: "job-1" },
+    completed,
+  );
+  const result = await transcribeWithAssemblyAI(
+    audio,
+    new AbortController().signal,
+  );
+  expect(result.model).toContain("universal-3-pro");
+  expect(result.transcript).toMatchObject({
+    durationSeconds: 30,
+    speakers: [
+      { id: "speaker-1", suggestedRole: "unknown" },
+      { id: "speaker-2", suggestedRole: "unknown" },
+    ],
+    segments: [
+      {
+        id: "segment-1",
+        speakerId: "speaker-1",
+        startSeconds: 0,
+        endSeconds: 1,
+        text: "Hello.",
+      },
+      {
+        id: "segment-2",
+        speakerId: "speaker-2",
+        startSeconds: 1.2,
+        endSeconds: 2,
+        text: "Hi.",
+      },
+    ],
+  });
+  expect(fetch).toHaveBeenCalledTimes(3);
+  expect(JSON.parse(fetch.mock.calls[1][1].body)).toMatchObject({
+    speaker_labels: true,
+    language_detection: true,
+  });
+});
+it("polls an existing queued job without submitting another generation", async () => {
+  vi.useFakeTimers();
+  const fetch = responses(
+    { upload_url: "https://cdn.assemblyai.com/upload/test" },
+    { id: "job-1" },
+    {
+      status: "processing",
+      speech_model_used: null,
+      text: null,
+      utterances: null,
+    },
+    completed,
+  );
+  const pending = transcribeWithAssemblyAI(audio, new AbortController().signal);
+  const assertion = expect(pending).resolves.toMatchObject({
+    transcript: { segments: expect.any(Array) },
+  });
+  await vi.advanceTimersByTimeAsync(2000);
+  await assertion;
+  expect(
+    fetch.mock.calls.filter(
+      (call) => call[0] === "https://api.assemblyai.com/v2/transcript",
+    ),
+  ).toHaveLength(1);
+});
+it.each([401, 403, 429, 503])(
+  "maps HTTP %i without leaking credentials or provider bodies",
+  async (status) => {
+    const fetch = vi.fn(async () =>
+      Response.json(
+        { error: "private-test-key private provider detail" },
+        { status },
+      ),
+    );
+    vi.stubGlobal("fetch", fetch);
+    await expect(
+      transcribeWithAssemblyAI(audio, new AbortController().signal),
+    ).rejects.toMatchObject({
+      code:
+        status === 429
+          ? "AI_QUOTA_EXCEEDED"
+          : status === 503
+            ? "AI_UNAVAILABLE"
+            : "AI_AUTH_FAILED",
+    });
+    expect(fetch).toHaveBeenCalledTimes(1);
+  },
+);
+it("rejects provider timestamps beyond the recording", async () => {
+  responses(
+    { upload_url: "https://cdn.assemblyai.com/upload/test" },
+    { id: "job-1" },
+    {
+      ...completed,
+      utterances: [{ speaker: "A", start: 0, end: 35000, text: "Hello" }],
+    },
+  );
+  await expect(
+    transcribeWithAssemblyAI(audio, new AbortController().signal),
+  ).rejects.toMatchObject({ code: "INVALID_AI_OUTPUT" });
+});
+it("distinguishes silence from malformed diarization", async () => {
+  responses(
+    { upload_url: "https://cdn.assemblyai.com/upload/test" },
+    { id: "job-1" },
+    { status: "completed", text: "", utterances: [] },
+  );
+  await expect(
+    transcribeWithAssemblyAI(audio, new AbortController().signal),
+  ).rejects.toMatchObject({ code: "NO_SPEECH" });
+});

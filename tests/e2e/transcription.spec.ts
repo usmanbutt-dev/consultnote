@@ -396,7 +396,7 @@ test("missing configuration gives an actionable error and keeps the audio", asyn
     page
       .getByRole("region", { name: "Conversation transcript" })
       .getByRole("alert"),
-  ).toContainText("Configure GEMINI_API_KEY in .env.local");
+  ).toContainText(/Configure (GEMINI|ASSEMBLYAI)_API_KEY/);
   await expect(page.getByLabel("Audio playback")).toHaveAttribute(
     "src",
     /^blob:/,

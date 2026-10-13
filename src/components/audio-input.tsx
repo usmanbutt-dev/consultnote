@@ -484,7 +484,7 @@ export function AudioInput({
         id="preview-notice"
         className="px-5 pb-5 text-center text-[11px] leading-5 text-slate-500"
       >
-        Notes and saving are not available in this preview yet.
+        Saving a consultation stores reviewed text, not the recording.
       </p>
     </section>
   );

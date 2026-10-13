@@ -1,6 +1,9 @@
 import { expect, test } from "@playwright/test";
 
 test("opens an honest empty workspace without an AI key", async ({ page }) => {
+  await page.route("**/api/consultations", (route) =>
+    route.fulfill({ json: { consultations: [] } }),
+  );
   await page.goto("/");
   await expect(
     page.getByRole("heading", { name: "New consultation", exact: true }),
@@ -9,7 +12,9 @@ test("opens an honest empty workspace without an AI key", async ({ page }) => {
     page.getByText("No consultations yet", { exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByText("Notes and saving are not available in this preview yet."),
+    page.getByText(
+      "Saving a consultation stores reviewed text, not the recording.",
+    ),
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Start recording", exact: true }),

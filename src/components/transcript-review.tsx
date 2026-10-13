@@ -27,7 +27,7 @@ export function TranscriptReview({
   transcript: Transcript;
   assignments: SpeakerAssignment[];
   disabled?: boolean;
-  onTranscriptChange: (transcript: Transcript) => void;
+  onTranscriptChange: (transcript: Transcript) => boolean | void;
   onAssignmentsChange: (assignments: SpeakerAssignment[]) => void;
 }) {
   const [error, setError] = useState("");
@@ -147,7 +147,8 @@ export function TranscriptReview({
                     return;
                   }
                   setError("");
-                  onTranscriptChange(next.data);
+                  if (onTranscriptChange(next.data) === false)
+                    event.currentTarget.value = segment.text;
                 }}
               />
             </li>

@@ -94,6 +94,23 @@ export const assignmentsSchema = z
     { message: "Each speaker must have exactly one role assignment." },
   );
 
+export const reviewedInputSchema = z
+  .strictObject({
+    transcript: transcriptSchema,
+    assignments: assignmentsSchema,
+  })
+  .refine(
+    ({ transcript, assignments }) =>
+      assignments.length === transcript.speakers.length &&
+      assignments.every((a) =>
+        transcript.speakers.some((s) => s.id === a.speakerId),
+      ),
+    {
+      message: "Assign a role to every transcript speaker.",
+      path: ["assignments"],
+    },
+  );
+
 export const noteItemSchema = z.strictObject({
   text: nonemptyText,
   segmentIds: z.array(nonemptyText).min(1),
