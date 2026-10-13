@@ -8,6 +8,7 @@ import {
   type Transcript,
   type SpeakerAssignment,
 } from "@/lib/consultation";
+import { DocumentTextarea } from "./document-textarea";
 
 function timestamp(seconds: number): string {
   return `${Math.floor(seconds / 60)
@@ -36,24 +37,27 @@ export function TranscriptReview({
 
   return (
     <div className="min-w-0 px-5 py-5">
-      <fieldset disabled={disabled} className="space-y-3 disabled:opacity-60">
+      <fieldset
+        disabled={disabled}
+        className="grid gap-3 sm:grid-cols-2 disabled:opacity-60"
+      >
         <legend className="mb-3 text-xs font-semibold text-slate-700">
           Speakers
         </legend>
         {transcript.speakers.map((speaker, index) => (
-          <div
-            key={speaker.id}
-            className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3"
-          >
+          <div key={speaker.id} className="min-w-0">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <label
                 htmlFor={`role-${speaker.id}`}
                 className="text-xs font-semibold"
               >
-                Speaker {index + 1} role
+                {transcript.details?.names.find(
+                  (name) => name.speakerId === speaker.id,
+                )?.name ?? `Speaker ${index + 1}`}
               </label>
               <select
                 id={`role-${speaker.id}`}
+                aria-label={`Speaker ${index + 1} role`}
                 value={
                   assignments.find((item) => item.speakerId === speaker.id)
                     ?.role ?? "unknown"
@@ -87,7 +91,10 @@ export function TranscriptReview({
           {error}
         </p>
       )}
-      <ol className="mt-5 space-y-4">
+      <ol
+        aria-label="Transcript document"
+        className="mt-5 space-y-4 rounded-lg border border-slate-200 bg-white p-4"
+      >
         {transcript.segments.map((segment, index) => {
           const speakerIndex = transcript.speakers.findIndex(
             (speaker) => speaker.id === segment.speakerId,
@@ -95,16 +102,34 @@ export function TranscriptReview({
           const role =
             assignments.find((item) => item.speakerId === segment.speakerId)
               ?.role ?? "unknown";
+          const name = transcript.details?.names.find(
+            (item) => item.speakerId === segment.speakerId,
+          )?.name;
+          const label =
+            role === "unknown"
+              ? `Speaker ${speakerIndex + 1}`
+              : role[0].toUpperCase() + role.slice(1);
+          const duplicateLabel =
+            role !== "unknown" &&
+            assignments.filter(
+              (item) =>
+                item.role === role &&
+                transcript.details?.names.find(
+                  (entry) => entry.speakerId === item.speakerId,
+                )?.name === name,
+            ).length > 1;
           return (
             <li
               key={`${segment.id}:${segment.text}`}
               id={`transcript-${segment.id}`}
-              className="rounded-lg border border-slate-200 p-3"
+              className="border-b border-slate-100 pb-4 last:border-0 last:pb-0"
             >
               <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-[10px]">
-                <span className="rounded-md bg-teal-50 px-2 py-1 font-semibold capitalize text-teal-800">
-                  Speaker {speakerIndex + 1} · {role}
-                </span>
+                <h3 className="text-xs font-semibold text-teal-800">
+                  {label}
+                  {name ? ` · ${name}` : ""}
+                  {duplicateLabel ? ` · Speaker ${speakerIndex + 1}` : ""}
+                </h3>
                 <span className="font-mono text-slate-500">
                   ~{timestamp(segment.startSeconds)}–
                   {timestamp(segment.endSeconds)}
@@ -113,17 +138,30 @@ export function TranscriptReview({
               <label htmlFor={`text-${segment.id}`} className="sr-only">
                 Transcript segment {index + 1}
               </label>
-              <textarea
+              <DocumentTextarea
                 id={`text-${segment.id}`}
                 defaultValue={segment.text}
                 disabled={disabled}
-                rows={2}
                 dir="auto"
-                className="w-full resize-y rounded-md border border-slate-200 bg-white p-2 text-xs leading-6 text-slate-700 disabled:opacity-60"
                 onInput={onPendingEdit}
                 onBlur={(event) => {
+                  const text = event.currentTarget.value.trim();
                   const next = transcriptSchema.safeParse({
                     ...transcript,
+                    details:
+                      text !== segment.text && transcript.details
+                        ? {
+                            names: transcript.details.names.filter(
+                              (name) => !name.segmentIds.includes(segment.id),
+                            ),
+                            concern:
+                              transcript.details.concern?.segmentIds.includes(
+                                segment.id,
+                              )
+                                ? null
+                                : transcript.details.concern,
+                          }
+                        : transcript.details,
                     segments: transcript.segments.map((item) =>
                       item.id === segment.id
                         ? { ...item, text: event.currentTarget.value }

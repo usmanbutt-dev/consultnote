@@ -9,6 +9,22 @@ export const speakerSchema = z.strictObject({
   reason: nonemptyText,
 });
 
+export const conversationDetailsSchema = z.strictObject({
+  names: z.array(
+    z.strictObject({
+      speakerId: nonemptyText,
+      name: nonemptyText.max(80),
+      segmentIds: z.array(nonemptyText).min(1),
+    }),
+  ),
+  concern: z
+    .strictObject({
+      label: nonemptyText.max(80),
+      segmentIds: z.array(nonemptyText).min(1),
+    })
+    .nullable(),
+});
+
 export const segmentSchema = z
   .strictObject({
     id: nonemptyText,
@@ -27,6 +43,7 @@ export const transcriptSchema = z
     durationSeconds: z.number().positive().max(600),
     speakers: z.array(speakerSchema).min(1),
     segments: z.array(segmentSchema).min(1),
+    details: conversationDetailsSchema.optional(),
   })
   .superRefine((transcript, context) => {
     const speakerIds = new Set(
@@ -74,6 +91,23 @@ export const transcriptSchema = z
           code: "custom",
           path: ["segments", index, "startSeconds"],
           message: "Segments must have chronological start times.",
+        });
+      }
+    }
+    if (transcript.details) {
+      const { names, concern } = transcript.details;
+      if (
+        new Set(names.map((name) => name.speakerId)).size !== names.length ||
+        names.some((name) => !speakerIds.has(name.speakerId)) ||
+        [...names, ...(concern ? [concern] : [])].some((item) =>
+          item.segmentIds.some((id) => !segmentIds.has(id)),
+        )
+      ) {
+        context.addIssue({
+          code: "custom",
+          path: ["details"],
+          message:
+            "Conversation details must reference existing speakers and segments.",
         });
       }
     }

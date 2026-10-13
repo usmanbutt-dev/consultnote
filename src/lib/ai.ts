@@ -57,7 +57,7 @@ export async function addRoleSuggestions(
     return {
       transcript,
       model: `${result.model}; Groq:${groqModel()}`,
-      promptVersion: "assemblyai-v2/english-v1/roles-v1",
+      promptVersion: "assemblyai-v2/english-v1/roles-v2",
     };
   } catch {
     return {

@@ -36,9 +36,11 @@ The original Gemini adapter remains available with `TRANSCRIPTION_PROVIDER=gemin
 ## Workflow
 
 1. Record or upload an MP3, WAV, WebM or OGG file, then play it back. Speakers may use English, Urdu or a mixture; there is no language selector.
-2. Select **Transcribe audio**. Review every segment and suggested doctor/patient/unknown role.
-3. Select **Generate notes**. Transcripts and generated notes are written in English. Review History, Discussion, Plan, Follow-up and Preferences/barriers; source buttons focus transcript evidence.
-4. Enter a title, save, reopen from history, rename or delete, and export Markdown.
+2. Select **Transcribe audio**. Review the continuous transcript and doctor/patient/unknown roles. Names appear only when clearly introduced or addressed in the conversation.
+3. Select **Generate notes**. Transcripts and generated notes are written in English. Each section has one editable box of concise bullets. Expand **Check in transcript** when you want to inspect a note's supporting passages.
+4. Review the suggested **Patient – Issue – Date** title, save, reopen from history, rename or delete, and export Markdown. The date is the current consultation session date; missing names or issues use generic labels. Your custom titles are preserved.
+
+Existing drafts keep their wording. Select **Regenerate notes** for shorter bullets; newly transcribed audio can include spoken names and a suggested title.
 
 Audio must be at most 10 MiB and 10 minutes. Recording stops at 9:59 to leave encoding headroom. The server independently validates the actual signature, audio stream and duration; WebM without duration metadata uses packet timing. Multipart parsing is bounded to 11 MiB, JSON requests to 1 MiB, and each audio probe to 15 seconds.
 

@@ -22,6 +22,16 @@ test("shows English transcript and notes side by side without language choices",
   await expect(
     page.getByLabel("History note 1", { exact: true }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("list", { name: "History bullet points" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("list", { name: "Transcript document" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Source segment 2", exact: true }).first(),
+  ).toBeHidden();
+  await expect(page.getByText("Sources", { exact: true })).toHaveCount(0);
   const left = await page
     .getByRole("region", { name: "Conversation transcript", exact: true })
     .boundingBox();

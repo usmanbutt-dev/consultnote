@@ -135,6 +135,7 @@ test("generates editable evidence-linked notes and confirms before invalidating 
   await page
     .getByLabel("History note 1", { exact: true })
     .fill("Reviewed headache discussion.");
+  await page.getByText("Check in transcript", { exact: true }).first().click();
   await page
     .getByRole("button", { name: "Source segment 2", exact: true })
     .first()
@@ -399,6 +400,7 @@ test("sample notes and evidence navigation work on a narrow screen", async ({
   await expect(
     page.getByLabel("History note 1", { exact: true }),
   ).toBeVisible();
+  await page.getByText("Check in transcript", { exact: true }).first().click();
   await page
     .getByRole("button", { name: "Source segment 2", exact: true })
     .first()

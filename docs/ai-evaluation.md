@@ -1,5 +1,15 @@
 # AI evaluation and interview demonstration
 
+## Concise notes and spoken names — 2026-10-14
+
+Reused the explicitly approved trimmed cost-of-care MP3 with AssemblyAI and Groq. The 300.19-second recording returned 32 turns and two speakers in 21.8 seconds. The role request identified Mr. Jones and Dr. Smith from clear forms of address; those passages were manually checked. Controlled tests also cover rejecting a doctor's self-introduction assigned to the patient and a name mentioned about a third party. A concern suggestion was accurate but wordy; the prompt now prefers a short symptom phrase found in the transcript. Title wording remains editable.
+
+The first `notes-v6` request returned 16 notes in 2.4 seconds, with concise history bullets, but added “Tuesday morning” where the audio only established Tuesday. The prompt was tightened to preserve exact timing and distinguish offering assistance from agreeing to a treatment. A second request returned 14 notes in 2.2 seconds and removed the unsupported morning. Example history: “Stopped physical therapy because of work schedule, cost, distance, parking and insurance session limits.” All sections passed the notes/evidence contract and were in English. This is one recording, not a clinical accuracy benchmark; retaining an optional way to check supporting transcript passages remains useful.
+
+The app now displays shared notes boxes and a continuous transcript, with supporting links hidden by default. These live outputs were not saved over the user's existing draft. Real Urdu and mixed English/Urdu recordings still need representative listening checks; existing controlled tests verify the translation request and evidence handling.
+
+Final verification: 173 unit tests and all 41 production browser tests passed, along with lint, type checking, formatting and the optimized build. The browser run used empty provider keys and isolated SQLite storage, including save/restart/reopen/delete checks. The retained local draft still contains its original 35 turns, 13 notes and `notes-v3` provenance. A single read-only review identified name-attribution, duplicate-role-label and stale-title issues; each was fixed with regression coverage.
+
 Status: The AssemblyAI/Groq workflow completed three fictional live evaluations and the user's approved five-minute MP3 on 2026-10-13. Transcript, role and note review remains necessary. Earlier Gemini investigations are retained below as historical records.
 
 ## Automatic speech detection and English output — 2026-10-14

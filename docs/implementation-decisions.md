@@ -1,5 +1,15 @@
 # Implementation decisions and tradeoffs
 
+## Document layout and spoken names — 2026-10-14
+
+Each notes section uses a shared box with editable bullet points. The notes prompt asks for concise clinical documentation, removes repeated patient prefixes where the subject is clear, and retains explicit attribution where necessary. Evidence remains part of the stored contract and export; the UI hides passage links under an optional **Check in transcript** disclosure.
+
+The transcript uses a continuous document with role headings, optional spoken names and approximate timestamps. Speakers with identical displayed roles/names retain numbered labels. Text inputs expand to fit their contents and retain existing validation, focus, edit-confirmation and notes-invalidation behavior.
+
+The existing Groq role request can return optional names and a short concern, each with transcript references. Names require an exact phrase plus a self-introduction by the same speaker or clear direct address to the next speaker in a two-speaker conversation. Ambiguous attribution and mentioned third parties are discarded. The concern must appear in a cited passage. These checks are conservative and do not prove identity or transcription accuracy.
+
+New sessions suggest **Patient – Issue – Date** using the session date and reviewed roles. Editing supporting passages clears affected metadata and refreshes an automatic title; a title edited by the user or loaded from a saved record is preserved. Optional metadata is stored in the existing transcript JSON, so older records and their evidence hashes remain compatible. Existing drafts are not rewritten automatically.
+
 ## English output and paired review — 2026-10-14
 
 - Automatically detect English, Urdu and mixed speech using Universal-2 with code switching. Request AssemblyAI's per-utterance English translation, including forced translation when English is the detected primary language. Preserve speaker IDs, turn IDs and timestamps; reject a completed response missing an English turn instead of displaying untranslated text.

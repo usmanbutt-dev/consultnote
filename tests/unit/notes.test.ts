@@ -152,6 +152,7 @@ it("role suggestions preserve all words, timestamps and speaker boundaries", asy
         reason: "Insufficient evidence.",
       },
     ],
+    details: null,
   });
   const result = await suggestRoles(transcript, new AbortController().signal);
   const sent = JSON.parse(fetch.mock.calls[0][1]!.body as string);
@@ -164,6 +165,85 @@ it("role suggestions preserve all words, timestamps and speaker boundaries", asy
   expect(result.segments).toEqual(transcript.segments);
   expect(result.speakers[1].suggestedRole).toBe("unknown");
 });
+
+it("adds only explicitly mentioned names and a cited complaint to the transcript", async () => {
+  const named = structuredClone(transcript);
+  named.segments[0].text =
+    "Hello, Mr. Jones. I'm Dr. Smith. What brings you in?";
+  named.segments[1].text = "My back pain has returned.";
+  const details = {
+    names: [
+      { speakerId: "speaker-1", name: "Dr. Smith", segmentIds: ["segment-1"] },
+      { speakerId: "speaker-2", name: "Mr. Jones", segmentIds: ["segment-1"] },
+    ],
+    concern: { label: "Back pain", segmentIds: ["segment-2"] },
+  };
+  completion({ speakers: named.speakers, details });
+  const result = await suggestRoles(named, new AbortController().signal);
+  expect(result).toMatchObject({ details });
+  expect(result.segments).toEqual(named.segments);
+  expect(transcriptSchema.parse(result)).toEqual(result);
+});
+
+it("accepts the two clear forms of address heard in the demonstration recording", async () => {
+  const named = structuredClone(transcript);
+  named.segments[0].text = "Hi, Mr. Jones. How are you?";
+  named.segments[1].text = "I'm good, Dr. Smith. Nice to see you.";
+  named.segments[2].speakerId = "speaker-1";
+  named.segments[2].text = "What brings you in?";
+  const details = {
+    names: [
+      { speakerId: "speaker-2", name: "Mr. Jones", segmentIds: ["segment-1"] },
+      { speakerId: "speaker-1", name: "Dr. Smith", segmentIds: ["segment-2"] },
+    ],
+    concern: null,
+  };
+  completion({ speakers: named.speakers, details });
+  const result = await suggestRoles(named, new AbortController().signal);
+  expect(result.details).toEqual(details);
+});
+
+it("discards unsupported identity and complaint suggestions while retaining roles", async () => {
+  completion({
+    speakers: transcript.speakers,
+    details: {
+      names: [
+        {
+          speakerId: "speaker-2",
+          name: "Invented name",
+          segmentIds: ["segment-2"],
+        },
+        { speakerId: "foreign", name: "Doctor", segmentIds: ["segment-1"] },
+      ],
+      concern: { label: "Cancer", segmentIds: ["foreign"] },
+    },
+  });
+  const result = await suggestRoles(transcript, new AbortController().signal);
+  expect(result.details).toBeUndefined();
+  expect(result.speakers).toEqual(transcript.speakers);
+});
+
+it.each([
+  { name: "Dr. Smith", segmentIds: ["segment-1"] },
+  { name: "John", segmentIds: ["segment-2"] },
+])(
+  "does not assign a self-introduction or a mentioned third person's name to the patient: $name",
+  async (identity) => {
+    const named = structuredClone(transcript);
+    named.segments[0].text = "I'm Dr. Smith. What brings you in?";
+    named.segments[1].text = "My husband John drove me here.";
+    completion({
+      speakers: named.speakers,
+      details: {
+        names: [{ speakerId: "speaker-2", ...identity }],
+        concern: null,
+      },
+    });
+    const result = await suggestRoles(named, new AbortController().signal);
+    expect(result.details).toBeUndefined();
+    expect(result.speakers).toEqual(named.speakers);
+  },
+);
 it("rejects invented or missing speaker IDs in role suggestions", async () => {
   completion({
     speakers: [{ id: "foreign", suggestedRole: "doctor", reason: "Invented" }],

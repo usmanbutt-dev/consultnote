@@ -20,6 +20,77 @@ async function upload(page: Page) {
   await expect(page.getByText("Audio ready", { exact: true })).toBeVisible();
 }
 
+test("shows named speakers and suggests a title without overwriting a custom title", async ({
+  page,
+}) => {
+  const named = {
+    ...result,
+    transcript: {
+      ...fixture,
+      details: {
+        names: [
+          {
+            speakerId: "speaker-1",
+            name: "Dr. Smith",
+            segmentIds: ["segment-1"],
+          },
+          {
+            speakerId: "speaker-2",
+            name: "Mr. Jones",
+            segmentIds: ["segment-1"],
+          },
+        ],
+        concern: { label: "Back pain", segmentIds: ["segment-2"] },
+      },
+    },
+  };
+  await page.route("**/api/transcribe", (route) =>
+    route.fulfill({ json: named }),
+  );
+  await upload(page);
+  await page
+    .getByRole("button", { name: "Transcribe audio", exact: true })
+    .click();
+  await expect(
+    page
+      .getByRole("heading", { name: "Doctor · Dr. Smith", exact: true })
+      .first(),
+  ).toBeVisible();
+  await expect(
+    page
+      .getByRole("heading", { name: "Patient · Mr. Jones", exact: true })
+      .first(),
+  ).toBeVisible();
+  const title = page.getByLabel("Consultation title", { exact: true });
+  await expect(title).toHaveValue(
+    /^Mr\. Jones – Back pain – \d{2} [A-Za-z]{3} \d{4}$/,
+  );
+  await page
+    .getByLabel("Transcript segment 1", { exact: true })
+    .fill("Greetings. What brings you in?");
+  await page.getByLabel("Transcript segment 2", { exact: true }).focus();
+  await expect(title).toHaveValue(/^Patient – Back pain –/);
+  await page
+    .getByLabel("Transcript segment 2", { exact: true })
+    .fill("General consultation.");
+  await page.getByLabel("Transcript segment 1", { exact: true }).focus();
+  await expect(title).toHaveValue(/^Patient – Consultation –/);
+  page.once("dialog", (dialog) => dialog.accept());
+  await page
+    .getByRole("button", { name: "Transcribe again", exact: true })
+    .click();
+  await expect(title).toHaveValue(/^Mr\. Jones – Back pain –/);
+  await title.fill("My reviewed consultation");
+  page.once("dialog", (dialog) => dialog.accept());
+  await page
+    .getByRole("button", { name: "Transcribe again", exact: true })
+    .click();
+  await expect(
+    page.getByLabel("Transcript segment 1", { exact: true }),
+  ).toHaveValue(fixture.segments[0].text);
+  await expect(title).toHaveValue("My reviewed consultation");
+});
+
 test("shows an editable transcript, approximate timestamps and suggested roles", async ({
   page,
 }) => {
@@ -58,6 +129,16 @@ test("shows an editable transcript, approximate timestamps and suggested roles",
   await expect(page.getByLabel("Speaker 1 role", { exact: true })).toHaveValue(
     "patient",
   );
+  await expect(
+    page
+      .getByRole("heading", { name: "Patient · Speaker 1", exact: true })
+      .first(),
+  ).toBeVisible();
+  await expect(
+    page
+      .getByRole("heading", { name: "Patient · Speaker 2", exact: true })
+      .first(),
+  ).toBeVisible();
   await page
     .getByLabel("Transcript segment 1", { exact: true })
     .fill("The corrected words, including work and transport.");

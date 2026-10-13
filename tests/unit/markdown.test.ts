@@ -34,3 +34,23 @@ it("escapes Markdown control text and HTML in user-controlled content", () => {
   expect(markdown).not.toContain("<script>");
   expect(markdown).not.toContain("[link](bad)");
 });
+
+it("includes spoken names next to the reviewed roles in the exported transcript", () => {
+  const markdown = toMarkdown({
+    ...record,
+    transcript: {
+      ...record.transcript,
+      details: {
+        names: [
+          {
+            speakerId: "speaker-1",
+            name: "Mr. Jones",
+            segmentIds: ["segment-1"],
+          },
+        ],
+        concern: null,
+      },
+    },
+  });
+  expect(markdown).toContain("**Patient · Mr. Jones**");
+});

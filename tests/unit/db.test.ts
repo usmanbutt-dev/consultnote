@@ -54,6 +54,27 @@ it("creates, lists and reopens a complete record without storing audio", () => {
   ]);
   expect(JSON.stringify(record)).not.toMatch(/audioBlob|base64|audioBytes/);
 });
+
+it("preserves optional spoken-name and complaint details when reopening", () => {
+  const named = transcriptSchema.parse({
+    ...transcript,
+    details: {
+      names: [
+        { speakerId: "speaker-2", name: "Alex", segmentIds: ["segment-2"] },
+      ],
+      concern: { label: "Headaches", segmentIds: ["segment-2"] },
+    },
+  });
+  const record = createConsultation({
+    ...input,
+    transcript: named,
+    notesResult: {
+      ...input.notesResult,
+      sourceDigest: sourceDigest(named, assignments),
+    },
+  });
+  expect(getConsultation(record.id)?.transcript.details).toEqual(named.details);
+});
 it("updates the same ID, preserves creation time and sorts by latest update", () => {
   const first = createConsultation(input);
   const second = createConsultation({ ...input, title: "Second" });

@@ -50,10 +50,15 @@ export function toMarkdown(input: ConsultationRecord): string {
     const role =
       record.assignments.find((a) => a.speakerId === segment.speakerId)?.role ??
       "unknown";
+    const name = record.transcript.details?.names.find(
+      (item) => item.speakerId === segment.speakerId,
+    )?.name;
+    const label =
+      role[0].toUpperCase() + role.slice(1) + (name ? ` · ${name}` : "");
     lines.push(
       `### Segment ${index + 1}`,
       "",
-      `**${role[0].toUpperCase() + role.slice(1)}** · ${time(segment.startSeconds)}–${time(segment.endSeconds)}`,
+      `**${escape(label)}** · ${time(segment.startSeconds)}–${time(segment.endSeconds)}`,
       "",
       escape(segment.text),
       "",

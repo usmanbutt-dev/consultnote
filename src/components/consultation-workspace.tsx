@@ -34,6 +34,7 @@ import { toMarkdown } from "@/lib/markdown";
 import { NOTES_PROMPT_VERSION } from "@/lib/prompts";
 import { type AudioLanguage, type NotesLanguage } from "@/lib/languages";
 import { removeCloudAudio, uploadCloudAudio } from "@/lib/cloud-client";
+import { suggestedConsultationTitle } from "@/lib/consultation-title";
 
 async function apiRequest(url: string, init?: RequestInit): Promise<unknown> {
   let response: Response;
@@ -100,6 +101,8 @@ export function ConsultationWorkspace({
   const [transcribing, setTranscribing] = useState(false);
   const [transcriptionError, setTranscriptionError] = useState("");
   const [title, setTitle] = useState("Untitled consultation");
+  const titleEdited = useRef(false);
+  const sessionDate = useRef(new Date());
   const [notesResult, setNotesResult] = useState<NotesResult | null>(null);
   const [notesProvenance, setNotesProvenance] = useState<Pick<
     ConsultationInput,
@@ -213,6 +216,8 @@ export function ConsultationWorkspace({
   }
 
   function clearTranscript() {
+    titleEdited.current = false;
+    sessionDate.current = new Date();
     setTranscription(null);
     setAssignments([]);
     setNotesResult(null);
@@ -274,12 +279,14 @@ export function ConsultationWorkspace({
         model: parsed.data.model,
         promptVersion: parsed.data.promptVersion,
       });
-      setAssignments(
-        parsed.data.transcript.speakers.map((speaker) => ({
+      const nextAssignments = parsed.data.transcript.speakers.map(
+        (speaker) => ({
           speakerId: speaker.id,
           role: speaker.suggestedRole,
-        })),
+        }),
       );
+      updateAutomaticTitle(parsed.data.transcript, nextAssignments);
+      setAssignments(nextAssignments);
       cancelNotes();
       setNotesResult(null);
       setNotesProvenance(null);
@@ -388,6 +395,26 @@ export function ConsultationWorkspace({
     setDirty(true);
     return true;
   }
+  function updateAutomaticTitle(
+    transcript: Transcript,
+    roles: SpeakerAssignment[],
+  ) {
+    if (titleEdited.current) return;
+    setTitle(
+      suggestedConsultationTitle(
+        {
+          ...transcript,
+          speakers: transcript.speakers.map((speaker) => ({
+            ...speaker,
+            suggestedRole:
+              roles.find((item) => item.speakerId === speaker.id)?.role ??
+              speaker.suggestedRole,
+          })),
+        },
+        sessionDate.current,
+      ),
+    );
+  }
   function editTranscript(transcript: Transcript): boolean {
     if (
       !transcription ||
@@ -396,11 +423,15 @@ export function ConsultationWorkspace({
       return true;
     if (!allowSourceEdit()) return false;
     setTranscription({ ...transcription, transcript });
+    updateAutomaticTitle(transcript, assignments);
     return true;
   }
   function editAssignments(next: SpeakerAssignment[]) {
     if (JSON.stringify(next) === JSON.stringify(assignments)) return;
-    if (allowSourceEdit()) setAssignments(next);
+    if (allowSourceEdit()) {
+      setAssignments(next);
+      if (transcription) updateAutomaticTitle(transcription.transcript, next);
+    }
   }
   async function createNotes() {
     if (!transcription || busy) return;
@@ -529,6 +560,7 @@ export function ConsultationWorkspace({
       promptVersion: input.promptVersion,
     });
     setTitle(input.title);
+    titleEdited.current = true;
     setSavedRecord(record);
     setDirty(!record);
     setPanel("notes");
@@ -817,6 +849,7 @@ export function ConsultationWorkspace({
                 maxLength={120}
                 disabled={busy}
                 onChange={(event) => {
+                  titleEdited.current = true;
                   setTitle(event.currentTarget.value);
                   setDirty(true);
                 }}
