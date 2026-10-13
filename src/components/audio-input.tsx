@@ -46,9 +46,13 @@ function formatTime(seconds: number) {
 export function AudioInput({
   onAudioReady,
   onReset,
+  onBeforeReplace,
+  onBusyChange,
 }: {
   onAudioReady: (file: File) => void;
   onReset: () => void;
+  onBeforeReplace?: () => boolean;
+  onBusyChange?: (busy: boolean) => void;
 }) {
   const [mode, setMode] = useState<"record" | "upload">("record");
   const [phase, setPhase] = useState<
@@ -63,6 +67,10 @@ export function AudioInput({
   const resources = useRef<Resources>({ operation: 0 });
   const fileInput = useRef<HTMLInputElement>(null);
   const busy = phase !== "idle";
+
+  useEffect(() => {
+    onBusyChange?.(busy);
+  }, [busy, onBusyChange]);
 
   useEffect(() => {
     const current = resources.current;
@@ -87,6 +95,7 @@ export function AudioInput({
   }
 
   function reset() {
+    if (onBeforeReplace && !onBeforeReplace()) return;
     cancel();
     const current = resources.current;
     if (current.url) URL.revokeObjectURL(current.url);
@@ -177,6 +186,7 @@ export function AudioInput({
       );
       return;
     }
+    if (onBeforeReplace && !onBeforeReplace()) return;
     const current = resources.current;
     const operation = ++current.operation;
     setPhase("starting");
@@ -364,7 +374,8 @@ export function AudioInput({
           onChange={(event) => {
             const file = event.currentTarget.files?.[0];
             event.currentTarget.value = "";
-            if (file) void validate(file);
+            if (file && (!onBeforeReplace || onBeforeReplace()))
+              void validate(file);
           }}
         />
         {phase === "recording" ? (
@@ -419,7 +430,10 @@ export function AudioInput({
             another file.
           </p>
           <button
-            onClick={() => void validate(candidate)}
+            onClick={() => {
+              if (!onBeforeReplace || onBeforeReplace())
+                void validate(candidate);
+            }}
             className="min-h-11 shrink-0 rounded-lg bg-teal-700 px-4 text-xs font-semibold text-white"
           >
             Retry audio check
@@ -470,7 +484,7 @@ export function AudioInput({
         id="preview-notice"
         className="px-5 pb-5 text-center text-[11px] leading-5 text-slate-500"
       >
-        Transcription, notes and saving are not available in this preview yet.
+        Notes and saving are not available in this preview yet.
       </p>
     </section>
   );

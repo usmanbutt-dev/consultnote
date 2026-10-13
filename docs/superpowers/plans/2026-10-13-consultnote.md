@@ -85,13 +85,15 @@ Implementation notes: `POST /api/audio/validate` makes this milestone independen
 
 **Interfaces:** Export `transcribeAudio(audio: ValidatedAudio): Promise<{ transcript: Transcript; model: string; promptVersion: string }>` and implement `POST /api/transcribe`. `TranscriptReview` receives the current transcript/assignments and emits validated transcript/assignment edits. Keep all SDK calls and key reads in a server-only module.
 
-- [ ] Write failing provider-boundary tests for valid speaker/segment mapping, third/unknown speakers, silence, empty or truncated output, schema/reference errors, missing key, authentication, model unavailability, quota, timeout, and disabled continuation. Assert the spec's public statuses/messages and absence of secrets/provider payloads.
-- [ ] Run `npm test -- tests/unit/gemini.test.ts`; verify the failing behavior before implementation.
-- [ ] Implement the first versioned prompt and bounded Gemini call using the current official audio/JSON-schema SDK endpoint. Validate the complete response before returning data. Distinguish `NO_SPEECH` from malformed output, and preserve `unknown` when roles cannot be inferred.
-- [ ] Connect recording/upload to transcription, display approximate timestamps and role explanations, and allow text/role corrections. Disable duplicate submissions and keep failed input available for manual retry. Discard responses for a replaced draft.
-- [ ] Run provider unit tests and `npm run test:e2e -- tests/e2e/transcription.spec.ts` using controlled API responses. Verify a quota error preserves the audio and permits a user-initiated retry.
-- [ ] With a user-configured free-tier key, run one short fictional live sample. Record exact model, SDK/API endpoint, prompt version, latency, and output; verify model access, supported MIME types, structured output, and completion flags. If a key is unavailable, report live AI quality/access as unverified while completing mock-based application checks.
-- [ ] Commit: `feat: transcribe consultations with Gemini and review speaker roles`.
+- [x] Write failing provider-boundary tests for valid speaker/segment mapping, third/unknown speakers, silence, empty or truncated output, schema/reference errors, missing key, authentication, model unavailability, quota, timeout, and disabled continuation. Assert the spec's public statuses/messages and absence of secrets/provider payloads.
+- [x] Run `npm test -- tests/unit/gemini.test.ts`; verify the failing behavior before implementation.
+- [x] Implement the first versioned prompt and bounded Gemini call using the current official audio/JSON-schema SDK endpoint. Validate the complete response before returning data. Distinguish `NO_SPEECH` from malformed output, and preserve `unknown` when roles cannot be inferred.
+- [x] Connect recording/upload to transcription, display approximate timestamps and role explanations, and allow text/role corrections. Disable duplicate submissions and keep failed input available for manual retry. Discard responses for a replaced draft.
+- [x] Run provider unit tests and `npm run test:e2e -- tests/e2e/transcription.spec.ts` using controlled API responses. Verify a quota error preserves the audio and permits a user-initiated retry.
+- [x] With a user-configured free-tier key, run one short fictional live sample. Record exact model, SDK/API endpoint, prompt version, latency, and output; verify model access, supported MIME types, structured output, and completion flags. If a key is unavailable, report live AI quality/access as unverified while completing mock-based application checks.
+- [x] Commit: `feat: transcribe consultations with Gemini and review speaker roles`.
+
+Implementation notes: SDK 2.29.0 uses `interactions.create` on `/v1beta/interactions`, with retries disabled and no continuation loop. No key was configured; live access, MIME/schema acceptance and output quality remain unverified in `docs/ai-evaluation.md`. Audio replacement, including retrying a pending upload, confirms before discarding a transcript. Review is disabled during capture/validation or retranscription.
 
 ### Task 4: Source-linked notes and editing
 

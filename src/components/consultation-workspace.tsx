@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   AudioLines,
   ChevronRight,
@@ -14,14 +14,138 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { AudioInput } from "./audio-input";
+import { TranscriptReview } from "./transcript-review";
+import { transcriptSchema, type SpeakerAssignment } from "@/lib/consultation";
+import type { TranscriptionResult } from "@/lib/gemini";
 
-export function ConsultationWorkspace() {
+export function ConsultationWorkspace({
+  geminiConfigured,
+}: {
+  geminiConfigured: boolean;
+}) {
   const [audio, setAudio] = useState<File | null>(null);
   const [inputVersion, setInputVersion] = useState(0);
   const [panel, setPanel] = useState<"transcript" | "notes">("transcript");
+  const [audioBusy, setAudioBusy] = useState(false);
+  const [transcription, setTranscription] =
+    useState<TranscriptionResult | null>(null);
+  const [assignments, setAssignments] = useState<SpeakerAssignment[]>([]);
+  const [transcribing, setTranscribing] = useState(false);
+  const [transcriptionError, setTranscriptionError] = useState("");
+  const request = useRef<{
+    generation: number;
+    busy: boolean;
+    controller?: AbortController;
+  }>({ generation: 0, busy: false });
+
+  useEffect(() => {
+    const active = request.current;
+    return () => {
+      active.generation++;
+      active.controller?.abort();
+    };
+  }, []);
+
+  function cancelTranscription() {
+    request.current.generation++;
+    request.current.controller?.abort();
+    request.current.busy = false;
+    setTranscribing(false);
+    setTranscriptionError("");
+  }
+
+  function beforeReplace() {
+    if (
+      transcription &&
+      !window.confirm(
+        "Replace this consultation? Your transcript and role edits will be discarded.",
+      )
+    )
+      return false;
+    cancelTranscription();
+    return true;
+  }
+
+  function clearTranscript() {
+    setTranscription(null);
+    setAssignments([]);
+  }
+
+  function acceptAudio(file: File) {
+    cancelTranscription();
+    setAudio(file);
+    clearTranscript();
+  }
+
+  async function transcribe() {
+    const active = request.current;
+    if (!audio || active.busy || audioBusy) return;
+    if (
+      transcription &&
+      !window.confirm(
+        "Transcribe again? A successful result will replace your transcript and role edits.",
+      )
+    )
+      return;
+    const generation = ++active.generation;
+    active.controller = new AbortController();
+    active.busy = true;
+    setTranscribing(true);
+    setTranscriptionError("");
+    setPanel("transcript");
+    const body = new FormData();
+    body.append("audio", audio);
+    try {
+      const response = await fetch("/api/transcribe", {
+        method: "POST",
+        body,
+        signal: active.controller.signal,
+      });
+      const data = await response.json();
+      if (!response.ok)
+        throw new Error(
+          data.error?.message ?? "Transcription failed. Please retry.",
+        );
+      if (generation !== active.generation) return;
+      const parsed = transcriptSchema.safeParse(data.transcript);
+      if (
+        !parsed.success ||
+        typeof data.model !== "string" ||
+        typeof data.promptVersion !== "string"
+      ) {
+        throw new Error("The transcript could not be read. Please retry.");
+      }
+      setTranscription({
+        transcript: parsed.data,
+        model: data.model,
+        promptVersion: data.promptVersion,
+      });
+      setAssignments(
+        parsed.data.speakers.map((speaker) => ({
+          speakerId: speaker.id,
+          role: speaker.suggestedRole,
+        })),
+      );
+    } catch (error) {
+      if (generation !== active.generation) return;
+      setTranscriptionError(
+        error instanceof Error && error.message !== "Failed to fetch"
+          ? error.message
+          : "Could not reach the app. Check your connection and retry.",
+      );
+    } finally {
+      if (generation === active.generation) {
+        active.busy = false;
+        setTranscribing(false);
+      }
+    }
+  }
 
   function newConsultation() {
+    if (!beforeReplace()) return;
     setAudio(null);
+    setAudioBusy(false);
+    clearTranscript();
     setInputVersion((version) => version + 1);
     setPanel("transcript");
   }
@@ -162,16 +286,18 @@ export function ConsultationWorkspace() {
               (step, index) => (
                 <li
                   key={step}
-                  aria-current={index === 0 ? "step" : undefined}
+                  aria-current={
+                    index === (transcription ? 1 : 0) ? "step" : undefined
+                  }
                   className="flex min-w-0 flex-1 flex-col items-center gap-2 text-center sm:flex-row sm:text-left"
                 >
                   <span
-                    className={`flex size-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${index === 0 ? "bg-teal-700 text-white" : "bg-slate-100 text-slate-500"}`}
+                    className={`flex size-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${index === (transcription ? 1 : 0) ? "bg-teal-700 text-white" : "bg-slate-100 text-slate-500"}`}
                   >
                     0{index + 1}
                   </span>
                   <span
-                    className={`text-[11px] sm:text-xs ${index === 0 ? "font-semibold text-teal-800" : "text-slate-500"}`}
+                    className={`text-[11px] sm:text-xs ${index === (transcription ? 1 : 0) ? "font-semibold text-teal-800" : "text-slate-500"}`}
                   >
                     {step}
                   </span>
@@ -182,8 +308,13 @@ export function ConsultationWorkspace() {
 
           <AudioInput
             key={inputVersion}
-            onAudioReady={setAudio}
-            onReset={() => setAudio(null)}
+            onAudioReady={acceptAudio}
+            onReset={() => {
+              setAudio(null);
+              clearTranscript();
+            }}
+            onBeforeReplace={beforeReplace}
+            onBusyChange={setAudioBusy}
           />
 
           <div
@@ -224,26 +355,92 @@ export function ConsultationWorkspace() {
                   Conversation transcript
                 </h2>
                 <span className="ml-auto text-[10px] text-slate-500">
-                  {audio ? "Audio captured" : "Waiting for audio"}
+                  {transcription
+                    ? `${transcription.transcript.speakers.length} speakers`
+                    : audio
+                      ? "Audio captured"
+                      : "Waiting for audio"}
                 </span>
               </div>
-              <div className="flex flex-1 flex-col items-center justify-center px-6 py-9 text-center">
-                <span className="flex size-11 items-center justify-center rounded-xl bg-slate-50">
-                  <AudioLines
-                    aria-hidden="true"
-                    size={23}
-                    strokeWidth={1.5}
-                    className="text-slate-400"
-                  />
-                </span>
-                <p className="mt-4 text-xs font-semibold text-slate-600">
-                  Every voice, in context
-                </p>
-                <p className="mt-2 max-w-64 text-[11px] leading-6 text-slate-500">
-                  Your transcript will appear here with speaker labels and
-                  timestamps.
-                </p>
+              <div className="border-b border-slate-100 px-5 py-4">
+                {!geminiConfigured && (
+                  <p className="mb-3 text-xs leading-6 text-amber-900">
+                    To transcribe, add GEMINI_API_KEY to .env.local and restart
+                    the app. Your key stays on the server.
+                  </p>
+                )}
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    onClick={() => void transcribe()}
+                    disabled={!audio || audioBusy || transcribing}
+                    className="min-h-11 rounded-lg bg-teal-700 px-4 text-xs font-semibold text-white disabled:opacity-50"
+                  >
+                    {transcribing
+                      ? "Transcribing…"
+                      : transcription
+                        ? "Transcribe again"
+                        : "Transcribe audio"}
+                  </button>
+                  {transcribing && (
+                    <button
+                      onClick={cancelTranscription}
+                      className="min-h-11 px-3 text-xs font-semibold text-slate-600"
+                    >
+                      Cancel transcription
+                    </button>
+                  )}
+                  <p
+                    role="status"
+                    aria-live="polite"
+                    className="text-[11px] text-slate-500"
+                  >
+                    {transcribing
+                      ? "Transcribing your audio…"
+                      : transcription
+                        ? "Transcript ready for review."
+                        : "Audio is sent to Gemini when you transcribe."}
+                  </p>
+                </div>
+                {transcriptionError && (
+                  <p
+                    role="alert"
+                    className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs leading-6 text-red-800"
+                  >
+                    {transcriptionError}
+                  </p>
+                )}
               </div>
+              {transcription ? (
+                <TranscriptReview
+                  transcript={transcription.transcript}
+                  assignments={assignments}
+                  disabled={transcribing || audioBusy}
+                  onTranscriptChange={(transcript) =>
+                    setTranscription((current) =>
+                      current ? { ...current, transcript } : null,
+                    )
+                  }
+                  onAssignmentsChange={setAssignments}
+                />
+              ) : (
+                <div className="flex flex-1 flex-col items-center justify-center px-6 py-9 text-center">
+                  <span className="flex size-11 items-center justify-center rounded-xl bg-slate-50">
+                    <AudioLines
+                      aria-hidden="true"
+                      size={23}
+                      strokeWidth={1.5}
+                      className="text-slate-400"
+                    />
+                  </span>
+                  <p className="mt-4 text-xs font-semibold text-slate-600">
+                    Every voice, in context
+                  </p>
+                  <p className="mt-2 max-w-64 text-[11px] leading-6 text-slate-500">
+                    Your transcript will appear here with speaker labels and
+                    timestamps.
+                  </p>
+                </div>
+              )}
               <p className="border-t border-slate-100 px-5 py-3 text-[10px] text-slate-500">
                 Review the words and confirm who is speaking.
               </p>

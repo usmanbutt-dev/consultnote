@@ -1,6 +1,6 @@
 # AI evaluation and interview demonstration
 
-Status: Protocol defined; no live Gemini evaluation has been run.
+Status: Transcription and speaker review implemented and tested with controlled responses. No live Gemini evaluation has been run: neither `.env.local` nor an environment key was configured during implementation.
 
 ## Purpose
 
@@ -51,4 +51,18 @@ Explain why the project uses browser capture, a server-side Gemini integration, 
 
 ## Results
 
-No measurements yet. Add dated results during implementation; never substitute mock responses for live model-quality measurements.
+2026-10-13 implementation record:
+
+| Field | Value |
+| --- | --- |
+| Configured model | `gemini-3.8-flash` |
+| SDK | `@google/genai` 2.29.0 |
+| API | `client.interactions.create`, `POST https://generativelanguage.googleapis.com/v1beta/interactions` |
+| Prompt version | `transcribe-v1` |
+| Output budget / deadline | 16,384 tokens / 120 seconds per generation |
+| Request policy | Inline audio, JSON schema, `store: false`, no tools, no retries or continuation |
+| Contract verification | Real SDK serialization and error handling tested against controlled HTTP responses; browser speaker/text review and manual retry tested |
+| Live sample / latency / raw output | Not run / not measured / none; key unavailable |
+| Unverified | Account/model access, actual audio MIME and schema acceptance, full-recording coverage, speaker accuracy, role quality and live completion behavior |
+
+The tests are application checks, not model-quality measurements. Once a free-tier key is configured, run short fictional sample A in the app and record the exact application commit, latency and unedited/corrected output here. Follow with samples B and C before claiming demonstration readiness. Sources checked: Google's [audio guide](https://ai.google.dev/gemini-api/docs/audio), [structured outputs](https://ai.google.dev/gemini-api/docs/structured-output) and [Interactions reference](https://ai.google.dev/api/interactions-api).

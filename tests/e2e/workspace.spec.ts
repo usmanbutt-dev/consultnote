@@ -9,9 +9,7 @@ test("opens an honest empty workspace without an AI key", async ({ page }) => {
     page.getByText("No consultations yet", { exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByText(
-      "Transcription, notes and saving are not available in this preview yet.",
-    ),
+    page.getByText("Notes and saving are not available in this preview yet."),
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Start recording", exact: true }),
