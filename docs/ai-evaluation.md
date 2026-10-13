@@ -88,3 +88,17 @@ The key was accepted for model listing. This does not establish successful gener
 After the user encountered `AI_UNAVAILABLE`, one further direct SDK request at application commit `8630ed8` used the same 19.22-second fictional sample, model, SDK, prompt and schema. Google returned HTTP 503 in 4.8 seconds. Safe inspection of the nested provider error identified high demand and temporary unavailability; no raw error body or credential was recorded.
 
 This reproduces the service failure independently of the user's five-minute MP3. It does not establish successful generation or audio/schema compatibility. The application now distinguishes an explicit provider 503 from its generic connection/model failure message and suggests manual retry. A controlled real-SDK transport regression verifies the public message, hides provider details and confirms a single request. The configured model, request parameters and no-retry policy are unchanged. Google's [troubleshooting guide](https://ai.google.dev/gemini-api/docs/troubleshooting) describes HTTP 503 as temporary service unavailability.
+
+### 2026-10-13 Firefox, timeout and compatibility investigation
+
+At application commit `28bf1db`, the user reported a 503 followed by an app HTTP 200 in 23.4 seconds with a Firefox `NetworkError`. Subsequent screenshots showed HTTP 504 after 120,125 ms and HTTP 503 after 8,020 ms. The 504 matches the configured 120-second generation deadline. The screenshots show Firefox receiving these error responses; they do not explain the earlier interrupted successful response.
+
+An isolated Firefox 157.0.1 profile at `http://127.0.0.1:3000` received complete 503 JSON responses for both the 19.22-second fictional sample and the user's trimmed 300.19-second MP3. A separate controlled browser check supplied a 503 followed by a 200 after 23.4 seconds: Firefox read both bodies and rendered all four fixture segments. These controlled responses verify the browser review path, not live Gemini output or the cause of the user's earlier network error.
+
+| Live request | Result |
+| --- | --- |
+| `gemini-3.5-flash-lite`, Interactions, 19.22-second fictional WAV | Completed in 39.5 seconds; valid schema/references/timestamps, two speakers, four segments |
+| `gemini-3.5-flash-lite`, Interactions, user's 300.19-second MP3 | HTTP 503 in 9.4 seconds; provider high demand |
+| `gemini-3.8-flash`, GenerateContent, same MP3 and prompt/schema | HTTP 503 in 17.8 seconds; provider high demand |
+
+The successful Flash-Lite sample preserved the two roles and most words, but changed the patient's correction from **Tuesday** to **today**. Human correction is required; this is not evidence of clinical accuracy. The alternative model supports audio and has a documented [free tier](https://ai.google.dev/gemini-api/docs/pricing), but its failed full-length check does not justify presenting a model switch as a reliable fix. The [GenerateContent comparison](https://ai.google.dev/api/generate-content) used a single request with retries and automatic continuation disabled. Application configuration and code were not changed during this investigation; the model remains `gemini-3.8-flash`. Full-length live transcription and the earlier browser delivery failure remain unverified. Diagnostics and the short fictional model output remain local and ignored by Git.
