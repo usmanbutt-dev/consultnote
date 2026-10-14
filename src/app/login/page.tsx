@@ -16,8 +16,8 @@ export default async function LoginPage({
     /* Setup is pending. */
   }
   return (
-    <main className="mx-auto flex min-h-screen max-w-md items-center px-6">
-      <div className="soft-panel w-full p-8">
+    <main className="mx-auto flex min-h-screen max-w-sm items-center px-5 py-8">
+      <div className="soft-panel w-full p-6">
         {configured ? (
           <>
             {params.deleted === "1" && (

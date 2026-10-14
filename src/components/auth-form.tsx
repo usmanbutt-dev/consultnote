@@ -15,7 +15,7 @@ export function AuthForm() {
   }
   return (
     <form
-      className="space-y-5"
+      className="space-y-4"
       onSubmit={async (event) => {
         event.preventDefault();
         if (active.current) return;
@@ -82,14 +82,14 @@ export function AuthForm() {
       }}
     >
       <div>
-        <h1 className="text-2xl font-semibold">
+        <h1 className="text-xl font-semibold tracking-tight">
           {mode === "signup"
             ? "Create your doctor account"
             : mode === "recover"
               ? "Reset your password"
               : "Welcome back"}
         </h1>
-        <p className="mt-3 text-sm leading-6 text-slate-600">
+        <p className="mt-1.5 text-sm leading-5 text-slate-600">
           {mode === "recover"
             ? "Enter your email to request a reset link."
             : "Your consultations, in your private workspace."}
@@ -104,7 +104,7 @@ export function AuthForm() {
             required
             maxLength={80}
             disabled={busy}
-            className="mt-2 min-h-11 w-full rounded-lg border border-slate-300 px-3 text-base"
+            className="auth-input mt-1.5 min-h-11 w-full rounded-lg border border-slate-300 bg-slate-50/60 px-3 text-base text-slate-900"
           />
         </label>
       )}
@@ -116,7 +116,7 @@ export function AuthForm() {
           autoComplete="email"
           required
           disabled={busy}
-          className="mt-2 min-h-11 w-full rounded-lg border border-slate-300 px-3 text-base"
+          className="auth-input mt-1.5 min-h-11 w-full rounded-lg border border-slate-300 bg-slate-50/60 px-3 text-base text-slate-900"
         />
       </label>
       {mode !== "recover" && (
@@ -132,10 +132,10 @@ export function AuthForm() {
             }
             required
             disabled={busy}
-            className="mt-2 min-h-11 w-full rounded-lg border border-slate-300 px-3 text-base"
+            className="auth-input mt-1.5 min-h-11 w-full rounded-lg border border-slate-300 bg-slate-50/60 px-3 text-base text-slate-900"
           />
           {mode === "signup" && (
-            <span className="mt-2 block font-normal text-slate-600">
+            <span className="mt-1.5 block font-normal text-slate-600">
               At least 8 characters.
             </span>
           )}
@@ -169,24 +169,29 @@ export function AuthForm() {
               ? "Send reset link"
               : "Sign in"}
       </button>
-      {mode === "login" && (
+      <div className="flex items-center justify-between gap-3 border-t border-slate-100 pt-2">
+        {mode === "login" && (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => changeMode("recover")}
+            className="min-h-11 text-sm font-medium text-teal-700 hover:text-teal-900"
+          >
+            Forgot password?
+          </button>
+        )}
         <button
           type="button"
           disabled={busy}
-          onClick={() => changeMode("recover")}
-          className="min-h-11 w-full text-sm font-medium text-teal-700"
+          onClick={() => changeMode(mode === "login" ? "signup" : "login")}
+          className={
+            "min-h-11 text-sm font-medium text-teal-700 hover:text-teal-900 " +
+            (mode === "login" ? "" : "w-full")
+          }
         >
-          Forgot password?
+          {mode === "login" ? "Create an account" : "Back to sign in"}
         </button>
-      )}
-      <button
-        type="button"
-        disabled={busy}
-        onClick={() => changeMode(mode === "login" ? "signup" : "login")}
-        className="min-h-11 w-full text-sm font-medium text-teal-700"
-      >
-        {mode === "login" ? "Create an account" : "Back to sign in"}
-      </button>
+      </div>
     </form>
   );
 }

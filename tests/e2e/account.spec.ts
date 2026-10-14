@@ -1,4 +1,5 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
+import { test } from "./prepared-consultation";
 
 test("replaces help with an account menu without inventing a signed-in doctor", async ({
   page,
@@ -17,11 +18,10 @@ test("replaces help with an account menu without inventing a signed-in doctor", 
 
 test("keeps speaker correction optional while preserving notes invalidation", async ({
   page,
+  loadPreparedConsultation,
 }) => {
   await page.goto("/");
-  await page
-    .getByRole("button", { name: "Try a sample conversation", exact: true })
-    .click();
+  await loadPreparedConsultation();
   await page
     .getByRole("button", { name: "View conversation", exact: true })
     .click();
@@ -46,14 +46,13 @@ test("keeps speaker correction optional while preserving notes invalidation", as
 
 test("browser Back protects a draft after returning from an account page", async ({
   page,
+  loadPreparedConsultation,
 }) => {
   await page.goto("/account");
   await page
     .getByRole("link", { name: "Back to consultations", exact: true })
     .click();
-  await page
-    .getByRole("button", { name: "Try a sample conversation", exact: true })
-    .click();
+  await loadPreparedConsultation();
   await page
     .getByLabel("History note 1", { exact: true })
     .fill("Unsaved wording that must survive Back.");

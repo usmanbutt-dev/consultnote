@@ -1,4 +1,5 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
+import { test } from "./prepared-consultation";
 import { fileURLToPath } from "node:url";
 import { readFile } from "node:fs/promises";
 import { sourceDigest } from "../../src/lib/evidence";
@@ -246,9 +247,10 @@ test("saves, reopens, renames and exports a consultation through real SQLite rou
     await request.delete(`/api/consultations/${record.id}`);
   }
 });
-test("loads a clearly labeled sample without calling an AI API and preserves the label after saving", async ({
+test("reopens prepared notes without calling AI and preserves their label after editing", async ({
   page,
   request,
+  loadPreparedConsultation,
 }) => {
   let providerCalls = 0;
   await page.route("**/api/transcribe", () => {
@@ -258,9 +260,7 @@ test("loads a clearly labeled sample without calling an AI API and preserves the
     providerCalls++;
   });
   await page.goto("/");
-  await page
-    .getByRole("button", { name: "Try a sample conversation", exact: true })
-    .click();
+  await loadPreparedConsultation();
   await expect(
     page.getByText("Prepared fictional sample", { exact: true }),
   ).toBeVisible();
@@ -273,8 +273,8 @@ test("loads a clearly labeled sample without calling an AI API and preserves the
     .fill(`Prepared sample QA ${Date.now()}`);
   const saved = page.waitForResponse(
     (response) =>
-      response.url().endsWith("/api/consultations") &&
-      response.request().method() === "POST",
+      response.url().includes("/api/consultations/") &&
+      response.request().method() === "PATCH",
   );
   await page
     .getByRole("button", { name: "Save consultation", exact: true })
@@ -409,12 +409,11 @@ test("ignores cancelled regeneration and retains the reviewed transcript and not
 
 test("sample notes and evidence navigation work on a narrow screen", async ({
   page,
+  loadPreparedConsultation,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
-  await page
-    .getByRole("button", { name: "Try a sample conversation", exact: true })
-    .click();
+  await loadPreparedConsultation();
   await expect(
     page.getByText("Prepared fictional sample", { exact: true }),
   ).toBeVisible();

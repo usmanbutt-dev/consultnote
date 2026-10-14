@@ -625,27 +625,6 @@ export function ConsultationWorkspace({
       if (generation === navigation.current) setSaving(false);
     }
   }
-  async function loadSample() {
-    if (busy || !beforeReplace()) return;
-    const generation = navigation.current;
-    setSaving(true);
-    setStorageError("");
-    try {
-      const input = consultationInputSchema.parse(
-        await apiRequest("/api/sample"),
-      );
-      if (generation === navigation.current) loadDraft(input, null);
-    } catch (error) {
-      if (generation === navigation.current)
-        setStorageError(
-          error instanceof Error
-            ? error.message
-            : "Sample could not be loaded.",
-        );
-    } finally {
-      if (generation === navigation.current) setSaving(false);
-    }
-  }
   async function removeConsultation(id: string) {
     if (
       busy ||
@@ -869,15 +848,6 @@ export function ConsultationWorkspace({
               onBeforeReplace={beforeReplace}
               onBusyChange={setAudioBusy}
             />
-            {!transcription && (
-              <button
-                onClick={() => void loadSample()}
-                disabled={busy}
-                className="mt-3 min-h-11 text-sm font-medium text-slate-700 underline decoration-slate-300 underline-offset-4 disabled:opacity-50"
-              >
-                Try a sample conversation
-              </button>
-            )}
           </div>
           {working ? (
             <section

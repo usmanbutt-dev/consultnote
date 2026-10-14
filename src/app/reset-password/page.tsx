@@ -11,8 +11,8 @@ export default async function ResetPasswordPage() {
     redirect("/login?recovery=expired");
   }
   return (
-    <main className="mx-auto flex min-h-screen max-w-md items-center px-6">
-      <div className="soft-panel w-full p-8">
+    <main className="mx-auto flex min-h-screen max-w-sm items-center px-5 py-8">
+      <div className="soft-panel w-full p-6">
         <PasswordForm />
       </div>
     </main>

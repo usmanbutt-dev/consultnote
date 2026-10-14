@@ -10,7 +10,7 @@ export function PasswordForm() {
   const [saved, setSaved] = useState(false);
   return (
     <form
-      className="space-y-5"
+      className="space-y-4"
       onSubmit={async (event) => {
         event.preventDefault();
         if (active.current) return;
@@ -49,10 +49,14 @@ export function PasswordForm() {
         }
       }}
     >
-      <h1 className="text-2xl font-semibold">Set a new password</h1>
-      <p className="text-sm leading-6 text-slate-600">
-        Choose a password with at least 8 characters.
-      </p>
+      <div>
+        <h1 className="text-xl font-semibold tracking-tight">
+          Set a new password
+        </h1>
+        <p className="mt-1.5 text-sm leading-5 text-slate-600">
+          Choose a password with at least 8 characters.
+        </p>
+      </div>
       {[
         ["password", "New password"],
         ["confirmPassword", "Confirm new password"],
@@ -67,7 +71,7 @@ export function PasswordForm() {
             maxLength={128}
             required
             disabled={busy}
-            className="mt-2 min-h-11 w-full rounded-lg border border-slate-300 px-3 text-base"
+            className="auth-input mt-1.5 min-h-11 w-full rounded-lg border border-slate-300 bg-slate-50/60 px-3 text-base text-slate-900"
           />
         </label>
       ))}

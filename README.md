@@ -4,7 +4,7 @@ AI-assisted doctor–patient conversation notes with transcript evidence and hum
 
 **Live demo:** [consultnote.vercel.app](https://consultnote.vercel.app). Hosted on Vercel Hobby with a separate Supabase Free project. Signup is immediate for this fictional-data interview demo; email confirmation is disabled and password-reset email delivery awaits custom SMTP.
 
-**Implemented:** microphone/upload, automatic English/Urdu/mixed input with English transcript and notes, optional speaker correction, clinician chart notes with editable sources, history, rename/delete and PDF, plain-text or Markdown downloads. One **Create notes** action processes audio into a draft. Notes appear first; **View conversation** opens the transcript alongside them on wide desktop screens or switches views on smaller screens. Doctor signup/login, signed-in password changes, private profiles/photos and account deletion are implemented and live account checks passed. AssemblyAI/Groq is the default processing path. A clearly labeled sample works without external APIs.
+**Implemented:** microphone/upload, automatic English/Urdu/mixed input with English transcript and notes, optional speaker correction, clinician chart notes with editable sources, history, rename/delete and PDF, plain-text or Markdown downloads. One **Create notes** action processes audio into a draft. Notes appear first; **View conversation** opens the transcript alongside them on wide desktop screens or switches views on smaller screens. Doctor signup/login, signed-in password changes, private profiles/photos and account deletion are implemented and live account checks passed. AssemblyAI/Groq is the default processing path. Saved notes can be reviewed and downloaded without new AI calls.
 
 ## Run locally
 
@@ -15,7 +15,7 @@ npm ci
 npm run dev
 ```
 
-Open [ConsultNote](http://127.0.0.1:3000). Select **Try a sample conversation** to explore immediately without keys. For new audio processing, configure the providers below.
+Open [ConsultNote](http://127.0.0.1:3000). Record or upload audio to start a consultation. For new audio processing, configure the providers below.
 
 ## Configuration
 
@@ -58,7 +58,7 @@ Downloads are generated locally in the browser without sending notes to another 
 
 PDF supports the app's English output. If manually edited text uses characters absent from the embedded font, the app explains the limitation and offers plain text or Markdown to preserve them.
 
-**Try a sample conversation** loads prepared fictional text and notes, clearly labeled in the interface and download. It works without external APIs and never claims to have transcribed the user's recording.
+The home screen starts with recording and upload actions. Previously saved consultations can be reviewed and downloaded without new AI calls. Older prepared examples retain their fictional-sample labels when reopened or downloaded.
 
 ## Verification
 

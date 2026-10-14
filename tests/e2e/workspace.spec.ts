@@ -1,7 +1,9 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
+import { test } from "./prepared-consultation";
 
 test("opens the English conversation beside notes without language choices", async ({
   page,
+  loadPreparedConsultation,
 }) => {
   await page.goto("/");
   await expect(
@@ -10,9 +12,7 @@ test("opens the English conversation beside notes without language choices", asy
   await expect(page.getByLabel("Notes language", { exact: true })).toHaveCount(
     0,
   );
-  await page
-    .getByRole("button", { name: "Try a sample conversation", exact: true })
-    .click();
+  await loadPreparedConsultation();
   await page
     .getByRole("button", { name: "View conversation", exact: true })
     .click();
@@ -60,6 +60,12 @@ test("opens an honest empty workspace without an AI key", async ({ page }) => {
     page.getByRole("button", { name: "Start recording", exact: true }),
   ).toBeEnabled();
   await expect(
+    page.getByRole("button", {
+      name: "Try a sample conversation",
+      exact: true,
+    }),
+  ).toHaveCount(0);
+  await expect(
     page.getByRole("button", { name: "Save consultation", exact: true }),
   ).toBeHidden();
   await page.screenshot({
@@ -70,11 +76,10 @@ test("opens an honest empty workspace without an AI key", async ({ page }) => {
 
 test("starts a fresh consultation after reviewing a sample", async ({
   page,
+  loadPreparedConsultation,
 }) => {
   await page.goto("/");
-  await page
-    .getByRole("button", { name: "Try a sample conversation", exact: true })
-    .click();
+  await loadPreparedConsultation();
   await expect(
     page.getByLabel("History note 1", { exact: true }),
   ).toBeVisible();
@@ -92,12 +97,11 @@ test("starts a fresh consultation after reviewing a sample", async ({
 
 test("keeps transcript and notes usable on a narrow screen", async ({
   page,
+  loadPreparedConsultation,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
-  await page
-    .getByRole("button", { name: "Try a sample conversation", exact: true })
-    .click();
+  await loadPreparedConsultation();
   await expect(
     page.getByRole("heading", { name: "Consultation notes", exact: true }),
   ).toBeVisible();

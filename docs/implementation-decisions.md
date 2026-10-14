@@ -1,5 +1,11 @@
 # Implementation decisions and tradeoffs
 
+## Compact account forms and simpler start — 2026-10-14
+
+Login, signup, recovery and password-change screens share a narrower card, tighter spacing and 44px inputs. An auth-specific 2px focus outline overlays the field border, with a subtle halo, avoiding the separated outer outline while preserving keyboard focus visibility. Login's secondary actions share one row.
+
+The home screen offers recording and upload. Its sample loader is removed; saved prepared records retain their labels. Browser checks now seed a fictional saved consultation through the normal API and open it from history, with fixture cleanup, rather than depending on a home-screen shortcut. Verification passed 210 unit tests, all 50 isolated production browser tests, lint, types, formatting and production build. Desktop/mobile account forms were visually inspected without authentication/email requests or horizontal overflow.
+
 ## Hosted interview demo — 2026-10-14
 
 The private GitHub repository is connected to Vercel Hobby, with Supabase Free for Auth/Postgres/Storage. CLI configuration uses a small committed `supabase/config.toml`, two versioned migrations and ignored project-link metadata. Provider/server keys are Vercel secrets; local environment files, SQLite data, recordings and diagnostic output are explicitly excluded from CLI uploads. Full modern server-key retrieval requires Supabase CLI's `--reveal` option; default masked values cannot authenticate privileged operations.
