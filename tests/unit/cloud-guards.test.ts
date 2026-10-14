@@ -7,6 +7,7 @@ import { requireOwner, reserveProcessing } from "@/lib/supabase/server";
 import { generateNotes } from "@/lib/groq";
 import { transcribeAudio } from "@/lib/ai";
 import { ApiError } from "@/lib/http";
+import transcript from "../fixtures/transcript.json";
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/supabase/server", () => ({
@@ -50,4 +51,30 @@ it("rejects the old multipart transcription route for a cloud user", async () =>
   );
   expect(result.status).toBe(400);
   expect(transcribeAudio).not.toHaveBeenCalled();
+});
+
+it("stops before generation when the server-side notes budget is exhausted", async () => {
+  vi.mocked(requireOwner).mockResolvedValue({
+    userId: "owner",
+    client: {},
+  } as Awaited<ReturnType<typeof requireOwner>>);
+  vi.mocked(reserveProcessing).mockRejectedValue(
+    new ApiError("PROCESSING_LIMIT", "Demo budget reached.", 429),
+  );
+  const result = await notes(
+    new Request("http://localhost/api/notes", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        transcript,
+        assignments: transcript.speakers.map((speaker) => ({
+          speakerId: speaker.id,
+          role: speaker.suggestedRole,
+        })),
+      }),
+    }),
+  );
+  expect(result.status).toBe(429);
+  expect(reserveProcessing).toHaveBeenCalledWith("owner", "notes");
+  expect(generateNotes).not.toHaveBeenCalled();
 });

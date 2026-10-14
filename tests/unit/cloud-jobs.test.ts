@@ -91,3 +91,17 @@ it("marks a terminal provider failure and removes its temporary recording", asyn
   });
   expect(removeStoredAudio).toHaveBeenCalledWith(input.path, userId);
 });
+
+it("does not read audio or submit a provider job when the atomic budget reservation fails", async () => {
+  const client = adminSupabase();
+  vi.mocked(client.rpc).mockResolvedValue({
+    data: false,
+    error: null,
+  } as never);
+  await expect(startJob(userId, input)).rejects.toMatchObject({
+    code: "PROCESSING_LIMIT",
+    status: 429,
+  });
+  expect(storedAudio).not.toHaveBeenCalled();
+  expect(submitAssemblyJob).not.toHaveBeenCalled();
+});

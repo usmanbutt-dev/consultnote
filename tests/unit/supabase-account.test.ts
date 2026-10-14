@@ -61,6 +61,18 @@ it("blocks new workspace work for an account being removed", async () => {
     status: 409,
   });
 });
+
+it("rejects an unverified session without creating a privileged client", async () => {
+  mocks.getUser.mockResolvedValue({
+    data: { user: null },
+    error: new Error("Invalid session"),
+  });
+  await expect(requireOwner()).rejects.toMatchObject({
+    code: "UNAUTHORIZED",
+    status: 401,
+  });
+  expect(mocks.create).not.toHaveBeenCalled();
+});
 it("clears only this project's session and recovery cookies", async () => {
   await clearAuthCookies();
   expect(mocks.removeCookie.mock.calls).toEqual([
