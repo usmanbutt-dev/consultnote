@@ -34,11 +34,7 @@ The old schema is now the first versioned migration; a second adds accounts. CLI
 
 ## Readable note downloads — 2026-10-14
 
-The existing Download action now opens a native browser popover offering PDF first, plain text and Markdown. PDF and text export saved notes without technical metadata or a transcript appendix; Markdown preserves the existing source links and full conversation. Every format uses the saved title for its filename, retaining spaces, capitalization and Unicode while removing filesystem-invalid characters, handling reserved Windows names and limiting UTF-8 filename length.
-
-Browser print-to-PDF would avoid a dependency but requires a print dialog and leaves filename handling to the browser. Direct PDF downloads use [pdfmake's client API](https://pdfmake.github.io/docs/0.3/getting-started/client-side/methods/), loaded on demand with embedded Roboto fonts. This provides selectable text, pagination, headings and page numbers without another AI call, remote rendering service or Vercel runtime changes. Saving current edits remains required before any download. Sample labels remain in every format; dates are explicitly labeled as last saved.
-
-PDF targets the app's English output. A character-coverage check derived from the pinned font files rejects unsupported custom wording before rendering and directs users to plain text or Markdown, which preserve all Unicode. This avoids silently losing Urdu characters in a manually entered title without bundling fonts for arbitrary scripts. Download descriptions are associated with their controls for screen readers.
+The Download action opens a native browser popover offering plain text and Markdown. Plain text exports saved notes without technical metadata or a transcript appendix; Markdown preserves the source links and full conversation. Both formats use the saved title for the filename, retaining spaces, capitalization and Unicode while removing filesystem-invalid characters, handling reserved Windows names and limiting UTF-8 filename length. Saving current edits remains required before downloading. Sample labels remain in both formats; dates are explicitly labeled as last saved. Download descriptions are associated with their controls for screen readers.
 
 ## Guided creation and review — 2026-10-14
 

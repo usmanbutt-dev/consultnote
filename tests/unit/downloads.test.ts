@@ -7,15 +7,15 @@ import notes from "../fixtures/notes.json";
 it.each([
   [
     "Mr. Jones – Back pain – 14 Oct 2026",
-    "Mr. Jones – Back pain – 14 Oct 2026.pdf",
+    "Mr. Jones – Back pain – 14 Oct 2026.txt",
   ],
-  ["  Follow-up: back / shoulder?  ", "Follow-up back shoulder.pdf"],
-  ["Dr. José – Follow-up", "Dr. José – Follow-up.pdf"],
-  ["CON", "Consultation - CON.pdf"],
-  ["NUL.notes", "Consultation - NUL.notes.pdf"],
-  ["...   ", "Consultation.pdf"],
+  ["  Follow-up: back / shoulder?  ", "Follow-up back shoulder.txt"],
+  ["Dr. José – Follow-up", "Dr. José – Follow-up.txt"],
+  ["CON", "Consultation - CON.txt"],
+  ["NUL.notes", "Consultation - NUL.notes.txt"],
+  ["...   ", "Consultation.txt"],
 ])("makes a readable, safe filename for %s", (title, expected) => {
-  expect(downloadFilename(title, "pdf")).toBe(expected);
+  expect(downloadFilename(title, "txt")).toBe(expected);
 });
 
 it("keeps Unicode filenames short enough for common filesystems", () => {

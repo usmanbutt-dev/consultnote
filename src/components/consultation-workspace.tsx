@@ -782,9 +782,9 @@ export function ConsultationWorkspace({
             (transcription ? "max-w-7xl" : "max-w-3xl")
           }
         >
-          <details className="group mb-7 rounded-2xl border border-teal-200 bg-white shadow-sm lg:hidden">
-            <summary className="flex min-h-20 list-none items-center gap-3 rounded-2xl bg-teal-50 px-4 py-4 text-left transition-colors hover:bg-teal-100 group-open:rounded-b-none [&::-webkit-details-marker]:hidden">
-              <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-teal-100 text-teal-800">
+          <details className="group mb-7 rounded-2xl border border-slate-200 bg-white shadow-sm lg:hidden">
+            <summary className="flex min-h-20 list-none items-center gap-3 rounded-2xl bg-white px-4 py-4 text-left transition-colors hover:bg-slate-50 group-open:rounded-b-none [&::-webkit-details-marker]:hidden">
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-600">
                 <FolderOpen aria-hidden="true" size={23} />
               </span>
               <span className="min-w-0 flex-1">
@@ -800,10 +800,10 @@ export function ConsultationWorkspace({
               <ChevronDown
                 aria-hidden="true"
                 size={22}
-                className="shrink-0 text-teal-800 transition-transform duration-200 group-open:rotate-180"
+                className="shrink-0 text-slate-500 transition-transform duration-200 group-open:rotate-180"
               />
             </summary>
-            <div className="border-t border-teal-100 p-4">
+            <div className="border-t border-slate-200 p-4">
               <ConsultationHistory
                 items={history}
                 activeId={savedRecord?.id}

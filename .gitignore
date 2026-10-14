@@ -10,6 +10,7 @@ next-env.d.ts
 # Secrets
 .env*
 !.env.example
+!.env.supabase.example
 
 # Local data and recordings
 .data/

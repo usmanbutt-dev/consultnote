@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useRef, useState } from "react";
-import { ChevronDown, FileText, FileType, LoaderCircle } from "lucide-react";
+import { ChevronDown, FileText, LoaderCircle } from "lucide-react";
 import type { ConsultationRecord } from "@/lib/consultation";
 import {
   downloadFilename,
@@ -30,15 +30,12 @@ export function NotesDownload({
     setError("");
     picker.current?.hidePopover();
     try {
-      const blob =
-        format === "pdf"
-          ? await (await import("@/lib/notes-pdf")).createNotesPdf(record)
-          : new Blob(
-              [format === "txt" ? toPlainText(record) : toMarkdown(record)],
-              {
-                type: `text/${format === "txt" ? "plain" : "markdown"};charset=utf-8`,
-              },
-            );
+      const blob = new Blob(
+        [format === "txt" ? toPlainText(record) : toMarkdown(record)],
+        {
+          type: `text/${format === "txt" ? "plain" : "markdown"};charset=utf-8`,
+        },
+      );
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -47,11 +44,9 @@ export function NotesDownload({
       link.click();
       link.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
-    } catch (error) {
+    } catch {
       setError(
-        error instanceof Error && error.message === "UNSUPPORTED_PDF_CHARACTERS"
-          ? "The PDF font cannot display some characters in this title or note. Choose Plain text or Markdown to keep every character."
-          : "The download could not be prepared. Your notes are saved. Please retry.",
+        "The download could not be prepared. Your notes are saved. Please retry.",
       );
     } finally {
       active.current = false;
@@ -87,11 +82,6 @@ export function NotesDownload({
         <p className="px-3 py-2 text-base font-semibold">Download notes</p>
         {(
           [
-            [
-              "pdf",
-              "PDF document (.pdf)",
-              "Formatted for reading and printing",
-            ],
             ["txt", "Plain text (.txt)", "Easy to open, copy and edit"],
             ["md", "Markdown (.md)", "Includes conversation and source links"],
           ] as const
@@ -104,19 +94,7 @@ export function NotesDownload({
             aria-label={label}
             aria-describedby={`${id}-${format}-description`}
           >
-            {format === "pdf" ? (
-              <FileType
-                aria-hidden="true"
-                size={20}
-                className="text-teal-700"
-              />
-            ) : (
-              <FileText
-                aria-hidden="true"
-                size={20}
-                className="text-slate-500"
-              />
-            )}
+            <FileText aria-hidden="true" size={20} className="text-slate-500" />
             <span>
               <span className="block text-sm font-semibold">{label}</span>
               <span

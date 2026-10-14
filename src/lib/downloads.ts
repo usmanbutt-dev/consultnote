@@ -4,7 +4,7 @@ import {
 } from "./consultation";
 import { noteSectionTitles } from "./languages";
 
-export type DownloadFormat = "pdf" | "txt" | "md";
+export type DownloadFormat = "txt" | "md";
 
 export function downloadFilename(
   title: string,

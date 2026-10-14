@@ -12,7 +12,7 @@ Live checks passed for signup/session, profile/photo CRUD, password changes, sig
 
 1. Create a project at [Supabase](https://supabase.com/dashboard). Keep the database password private.
 2. Initialize/link the Supabase CLI when proceeding with setup, then apply every file in [migrations](../supabase/migrations) in timestamp order using `supabase db push`. They create private consultations, profiles, photo/audio Storage, jobs, server-only processing limits and upload quotas. On a project that already ran the former `schema.sql`, reconcile migration history before pushing the initial migration; do not reapply its policies blindly. See [Supabase migrations](https://supabase.com/docs/guides/deployment/database-migrations).
-3. Copy the project URL and publishable key from Connect, and a secret key from Settings → API Keys, into the ignored `.env` or `.env.local`:
+3. Copy [the application template](../.env.example) to `.env.local`. Fill in your own project URL and publishable key from Connect, a secret key from Settings → API Keys, and your AI provider keys:
 
    ```dotenv
    NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
@@ -24,7 +24,7 @@ Live checks passed for signup/session, profile/photo CRUD, password changes, sig
    GROQ_MODEL=openai/gpt-oss-120b
    ```
 
-   Keep secret/provider keys server-only. The old `SUPABASE_SERVICE_ROLE_KEY` name remains supported as a fallback; a configured modern secret takes priority. See [Supabase API keys](https://supabase.com/docs/guides/getting-started/api-keys).
+   Keep secret/provider keys server-only. [The optional CLI template](../.env.supabase.example) contains only a blank database-password setting; `.env.supabase` is not loaded automatically and is not needed at application runtime. Use the CLI password prompt or its shell environment when applying migrations. Never include Vercel authentication tokens in the runtime environment file. The old `SUPABASE_SERVICE_ROLE_KEY` name remains supported as a fallback; a configured modern secret takes priority. See [Supabase API keys](https://supabase.com/docs/guides/getting-started/api-keys).
 4. Under Authentication → URL Configuration, set the local Site URL to `http://127.0.0.1:3000` and allow `http://127.0.0.1:3000/**` for local callbacks and password recovery. Use explicit hosted origins later. Restart the app.
 5. Create an account at `/login` with name, email and password, confirm it, and sign in. The avatar menu opens My profile and Sign out. Forgotten-password emails return through the callback to `/reset-password`.
 

@@ -4,7 +4,7 @@ AI-assisted doctor–patient conversation notes with transcript evidence and hum
 
 **Live demo:** [consultnote.vercel.app](https://consultnote.vercel.app). Hosted on Vercel Hobby with a separate Supabase Free project. Signup is immediate for this fictional-data interview demo; email confirmation is disabled and password-reset email delivery awaits custom SMTP.
 
-**Implemented:** microphone/upload, automatic English/Urdu/mixed input with English transcript and notes, optional speaker correction, clinician chart notes with editable sources, history, rename/delete and PDF, plain-text or Markdown downloads. One **Create notes** action processes audio into a draft. Notes appear first; **View conversation** opens the transcript alongside them on wide desktop screens or switches views on smaller screens. Doctor signup/login, signed-in password changes, private profiles/photos and account deletion are implemented and live account checks passed. AssemblyAI/Groq is the default processing path. Saved notes can be reviewed and downloaded without new AI calls.
+**Implemented:** microphone/upload, automatic English/Urdu/mixed input with English transcript and notes, optional speaker correction, clinician chart notes with editable sources, history, rename/delete and plain-text or Markdown downloads. One **Create notes** action processes audio into a draft. Notes appear first; **View conversation** opens the transcript alongside them on wide desktop screens or switches views on smaller screens. Doctor signup/login, signed-in password changes, private profiles/photos and account deletion are implemented and live account checks passed. AssemblyAI/Groq is the default processing path. Saved notes can be reviewed and downloaded without new AI calls.
 
 ## Run locally
 
@@ -12,26 +12,36 @@ Install Node.js 24 LTS. Audio inspection uses a bundled `ffprobe`; no separate F
 
 ```powershell
 npm ci
+Copy-Item .env.example .env.local
+```
+
+Fill in your own credentials in `.env.local` and complete the Supabase setup below, then run:
+
+```powershell
 npm run dev
 ```
 
-Open [ConsultNote](http://127.0.0.1:3000). Record or upload audio to start a consultation. For new audio processing, configure the providers below.
+Open [ConsultNote](http://127.0.0.1:3000), sign up or sign in, then record or upload audio. On macOS/Linux, use `cp .env.example .env.local` for the copy step.
 
 ## Configuration
 
-On a new checkout, copy [.env.example](.env.example) to `.env.local`, set the keys and restart the app:
+The submission uses Supabase for accounts, profiles, saved consultations and private audio storage, both locally and on Vercel. [.env.example](.env.example) is the complete application template. Set these values in your copied `.env.local`:
 
 ```dotenv
 ASSEMBLYAI_API_KEY=your_key
 GROQ_API_KEY=your_key
 TRANSCRIPTION_PROVIDER=assemblyai
 GROQ_MODEL=openai/gpt-oss-120b
-DATABASE_PATH=.data/consultnote.sqlite
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_publishable_key
+SUPABASE_SECRET_KEY=your_server_only_secret_key
 ```
 
 AssemblyAI offers [trial credits](https://support.assemblyai.com/articles/5370767329-can-i-sign-up-for-free); Groq offers a [free plan with limits](https://console.groq.com/docs/rate-limits). Access and remaining quota depend on the account. The app does not enable billing. Keep provider credentials server-side and out of Git; never prefix them with `NEXT_PUBLIC_`.
 
-For accounts, online storage and hosting, follow [Supabase and Vercel setup](docs/deployment.md). Leaving Supabase unset keeps local SQLite mode. On Vercel, missing cloud configuration blocks access instead of enabling local anonymous processing.
+Create your own Supabase project and apply every file in `supabase/migrations` in timestamp order before testing. Follow [Supabase and Vercel setup](docs/deployment.md) for migrations, authentication redirects and email settings. Allow `http://127.0.0.1:3000/**` for local authentication callbacks. Restart the app after changing environment values; rebuild/redeploy after changing public Supabase values on Vercel.
+
+[.env.supabase.example](.env.supabase.example) is an optional database-password template for Supabase CLI migration work. It is not needed to run the application and neither Next.js nor the CLI loads `.env.supabase` automatically; use the CLI password prompt or its shell environment. Vercel authentication tokens and database passwords are not application settings. Filled environment files are excluded from the submission and Git. The [hosted demo](https://consultnote.vercel.app) can be tested without configuring any credentials locally.
 
 The avatar menu replaces Help. Signed-in doctors can edit their name, specialty, clinic and photo under **My profile**, change passwords, or permanently delete their account after entering their current password and typing DELETE. The account name identifies the workspace owner; speaker names still come from the recording. **Correct speaker labels** keeps manual corrections available without a permanent selection panel. Supabase migrations are applied and the private GitHub repository is connected to Vercel. Existing SQLite drafts are not automatically imported into cloud accounts.
 
@@ -42,7 +52,7 @@ The original Gemini adapter remains available with `TRANSCRIPTION_PROVIDER=gemin
 1. Record or upload an MP3, WAV, WebM or OGG file, then play it back. Speakers may use English, Urdu or a mixture; there is no language selector.
 2. Select **Create notes**. The app reads the conversation and prepares a draft in one flow, with a visible progress message and Cancel. If notes fail, retry reuses the completed transcript.
 3. Review the English notes in their editable bullet sections. **View conversation** reveals the continuous transcript and doctor/patient/unknown role controls. Names appear only when clearly introduced or addressed. Expand **See in conversation** to inspect supporting passages; selecting one reveals and focuses the matching text.
-4. Review the suggested **Patient – Issue – Date** title and select **Save consultation**, then **Download notes**. Choose a formatted PDF, plain text, or Markdown. PDF and text contain the notes; Markdown also includes the conversation and source links. Filenames follow the saved title, preserving readable words, spaces and accents while removing unsupported filename characters. Reopen from history, rename or delete as needed. The date is the current consultation session date; missing names or issues use generic labels. Your custom titles are preserved.
+4. Review the suggested **Patient – Issue – Date** title and select **Save consultation**, then **Download notes**. Choose plain text or Markdown. Plain text contains the notes; Markdown also includes the conversation and source links. Filenames follow the saved title, preserving readable words, spaces and accents while removing unsupported filename characters. Reopen from history, rename or delete as needed. The date is the current consultation session date; missing names or issues use generic labels. Your custom titles are preserved.
 
 Existing drafts keep their wording. Select **Regenerate notes** for shorter bullets; newly transcribed audio can include spoken names and a suggested title.
 
