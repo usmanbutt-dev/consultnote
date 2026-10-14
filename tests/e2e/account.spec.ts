@@ -32,10 +32,13 @@ test("keeps speaker correction optional while preserving notes invalidation", as
     page.getByRole("heading", { name: "Doctor", exact: true }).first(),
   ).toBeVisible();
   await page.getByText("Correct speaker labels", { exact: true }).click();
-  page.once("dialog", (dialog) => dialog.accept());
   await page
     .getByLabel("Speaker 1 role", { exact: true })
     .selectOption("unknown");
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Update conversation", exact: true })
+    .click();
   await expect(page.getByLabel("History note 1", { exact: true })).toHaveCount(
     0,
   );

@@ -54,6 +54,8 @@ Local transcription and notes have 120-second deadlines without automatic genera
 
 Changing transcript text or roles asks before discarding notes. A server-computed SHA-256 digest rejects stale notes on save. Failed requests preserve the draft; cancelled/replaced results are ignored. Saved consultations contain text only. Export becomes available after saving the current edits.
 
+In-app confirmations use matching dialogs with keyboard focus and Escape to cancel. Refreshing, closing the tab or leaving through browser history retains the browser's native unsaved-changes warning, which websites cannot customize. Recording has a live sound-level indicator and separate Stop and Discard actions; discarding asks for confirmation before releasing the microphone. History highlights the open consultation.
+
 Downloads are generated locally in the browser without sending notes to another service. The PDF generator and its embedded fonts load only when PDF is selected. PDF files use selectable text, section headings, bullet points, automatic page breaks and page numbers. The last-saved date is labeled separately from any consultation date in the title.
 
 PDF supports the app's English output. If manually edited text uses characters absent from the embedded font, the app explains the limitation and offers plain text or Markdown to preserve them.

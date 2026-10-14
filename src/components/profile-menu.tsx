@@ -1,5 +1,5 @@
 "use client";
-import { useId, useState, type MouseEvent } from "react";
+import { useId, useRef, useState, type MouseEvent } from "react";
 import { LogOut, UserRound } from "lucide-react";
 import { doctorName, type DoctorProfile } from "@/lib/account";
 import { accountRequest } from "@/lib/account-client";
@@ -13,13 +13,14 @@ export function ProfileMenu({
 }: {
   profile: DoctorProfile | null;
   disabled?: boolean;
-  onBeforeNavigate?: (action: "navigate" | "signout") => boolean;
+  onBeforeNavigate?: (action: "navigate" | "signout") => Promise<boolean>;
   onNavigationError?: () => void;
 }) {
   const id = useId();
+  const menu = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  function navigate(event: MouseEvent<HTMLAnchorElement>) {
+  async function navigate(event: MouseEvent<HTMLAnchorElement>) {
     if (disabled || busy) {
       event.preventDefault();
       return;
@@ -32,7 +33,10 @@ export function ProfileMenu({
       event.button !== 0
     )
       return;
-    if (onBeforeNavigate?.("navigate") === false) event.preventDefault();
+    event.preventDefault();
+    const href = event.currentTarget.href;
+    if ((await onBeforeNavigate?.("navigate")) === false) return;
+    window.location.assign(href);
   }
   return (
     <div>
@@ -45,6 +49,7 @@ export function ProfileMenu({
         <ProfileAvatar profile={profile} />
       </button>
       <div
+        ref={menu}
         id={id}
         popover="auto"
         aria-label="Your account"
@@ -69,7 +74,8 @@ export function ProfileMenu({
             <button
               disabled={disabled || busy}
               onClick={async () => {
-                if (busy || onBeforeNavigate?.("signout") === false) return;
+                if (busy || (await onBeforeNavigate?.("signout")) === false)
+                  return;
                 setBusy(true);
                 setError("");
                 try {
@@ -82,6 +88,7 @@ export function ProfileMenu({
                       ? failure.message
                       : "Sign-out failed. Please retry.",
                   );
+                  menu.current?.showPopover();
                 } finally {
                   setBusy(false);
                 }

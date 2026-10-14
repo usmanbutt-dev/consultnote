@@ -66,6 +66,55 @@ test.beforeAll(async ({ browser }) => {
 test.afterAll(async () => {
   await server?.close();
 });
+
+test("profile dialogs retain edits and restore protection after failed sign-out", async ({
+  page,
+}) => {
+  await page.route("**/api/auth/signout", (route) =>
+    route.fulfill({
+      status: 503,
+      json: { error: { message: "Sign-out unavailable. Please retry." } },
+    }),
+  );
+  await page.goto(
+    "http://127.0.0.1:3202/tests/fixtures/cloud-harness/profile.html",
+  );
+  const name = page.getByRole("textbox", { name: "Full name", exact: true });
+  await name.fill("Ayesha Khan Updated");
+  await page
+    .getByRole("link", { name: "Back to consultations", exact: true })
+    .click();
+  const dialog = page.getByRole("dialog", { name: "Leave your profile?" });
+  await expect(dialog).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(name).toHaveValue("Ayesha Khan Updated");
+  await page.getByRole("button", { name: "Account menu", exact: true }).click();
+  await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  await dialog
+    .getByRole("button", { name: "Leave profile", exact: true })
+    .click();
+  await expect(page.getByRole("alert")).toContainText("Sign-out unavailable");
+  expect(
+    await page.evaluate(() => {
+      const event = new Event("beforeunload", { cancelable: true });
+      window.dispatchEvent(event);
+      return event.defaultPrevented;
+    }),
+  ).toBe(true);
+  await expect(name).toHaveValue("Ayesha Khan Updated");
+  await page.route("http://127.0.0.1:3202/", (route) =>
+    route.fulfill({ contentType: "text/html", body: "<h1>Consultations</h1>" }),
+  );
+  await page
+    .getByRole("link", { name: "Back to consultations", exact: true })
+    .click();
+  await dialog
+    .getByRole("button", { name: "Leave profile", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Consultations", exact: true }),
+  ).toBeVisible();
+});
 test.beforeEach(async ({ page }) => {
   await page.route("**/api/notes", (route) => {
     const input = route.request().postDataJSON();

@@ -14,6 +14,7 @@ import { TranscriptReview } from "./transcript-review";
 import { NotesEditor } from "./notes-editor";
 import { ConsultationHistory } from "./consultation-history";
 import { ProfileMenu } from "./profile-menu";
+import { useConfirmation } from "./use-confirmation";
 import type { DoctorProfile } from "@/lib/account";
 import { z } from "zod";
 import {
@@ -83,6 +84,7 @@ export function ConsultationWorkspace({
     cloud?: boolean;
   };
 }) {
+  const { confirm, confirmation } = useConfirmation();
   const [audio, setAudio] = useState<File | null>(null);
   const [audioPath, setAudioPath] = useState<string | undefined>();
   const cloudJob = useRef<{
@@ -215,14 +217,18 @@ export function ConsultationWorkspace({
     cancelNotes();
   }
 
-  function beforeReplace() {
+  async function beforeReplace() {
     if (saving) return false;
     if (
       transcription &&
       dirty &&
-      !window.confirm(
-        "Replace this consultation? Your transcript and role edits will be discarded.",
-      )
+      !(await confirm({
+        title: "Discard this consultation?",
+        message: "Your unsaved notes and conversation edits will be lost.",
+        confirmLabel: "Discard changes",
+        cancelLabel: "Keep editing",
+        destructive: true,
+      }))
     )
       return false;
     cancelCreation();
@@ -258,9 +264,12 @@ export function ConsultationWorkspace({
     if (!audio || active.busy || audioBusy) return null;
     if (
       transcription &&
-      !window.confirm(
-        "Transcribe again? A successful result will replace your transcript and role edits.",
-      )
+      !(await confirm({
+        title: "Transcribe again?",
+        message:
+          "A new transcript will replace your conversation edits and current notes. If it fails, your draft is kept.",
+        confirmLabel: "Transcribe again",
+      }))
     )
       return null;
     const generation = ++active.generation;
@@ -420,12 +429,16 @@ export function ConsultationWorkspace({
     }
   }
 
-  function allowSourceEdit(): boolean {
+  async function allowSourceEdit(): Promise<boolean> {
     if (
       notesResult &&
-      !window.confirm(
-        "Changing the transcript or roles will discard the current notes. Continue?",
-      )
+      !(await confirm({
+        title: "Update the conversation?",
+        message:
+          "The current notes will be cleared so they can be recreated from your changes.",
+        confirmLabel: "Update conversation",
+        cancelLabel: "Keep notes",
+      }))
     )
       return false;
     cancelNotes();
@@ -454,20 +467,20 @@ export function ConsultationWorkspace({
       ),
     );
   }
-  function editTranscript(transcript: Transcript): boolean {
+  async function editTranscript(transcript: Transcript): Promise<boolean> {
     if (
       !transcription ||
       JSON.stringify(transcript) === JSON.stringify(transcription.transcript)
     )
       return true;
-    if (!allowSourceEdit()) return false;
+    if (!(await allowSourceEdit())) return false;
     setTranscription({ ...transcription, transcript });
     updateAutomaticTitle(transcript, assignments);
     return true;
   }
-  function editAssignments(next: SpeakerAssignment[]) {
+  async function editAssignments(next: SpeakerAssignment[]) {
     if (JSON.stringify(next) === JSON.stringify(assignments)) return;
-    if (allowSourceEdit()) {
+    if (await allowSourceEdit()) {
       setAssignments(next);
       if (transcription) updateAutomaticTitle(transcription.transcript, next);
     }
@@ -476,9 +489,12 @@ export function ConsultationWorkspace({
     if (!source || busy) return;
     if (
       notesResult &&
-      !window.confirm(
-        "Regenerate notes? A successful result will replace your note edits.",
-      )
+      !(await confirm({
+        title: "Create new notes?",
+        message:
+          "New notes will replace your edits. If it fails, your current notes are kept.",
+        confirmLabel: "Regenerate notes",
+      }))
     )
       return;
     const generation = ++notesRequest.current.generation;
@@ -607,7 +623,7 @@ export function ConsultationWorkspace({
     setStorageError("");
   }
   async function openConsultation(id: string) {
-    if (busy || !beforeReplace()) return;
+    if (busy || !(await beforeReplace())) return;
     const generation = navigation.current;
     setSaving(true);
     setStorageError("");
@@ -628,7 +644,13 @@ export function ConsultationWorkspace({
   async function removeConsultation(id: string) {
     if (
       busy ||
-      !window.confirm("Delete this saved consultation? This cannot be undone.")
+      !(await confirm({
+        title: "Delete consultation?",
+        message:
+          "This saved consultation will be permanently deleted. This cannot be undone.",
+        confirmLabel: "Delete consultation",
+        destructive: true,
+      }))
     )
       return;
     setSaving(true);
@@ -665,8 +687,8 @@ export function ConsultationWorkspace({
     });
   }
 
-  function newConsultation() {
-    if (!beforeReplace()) return;
+  async function newConsultation() {
+    if (!(await beforeReplace())) return;
     discardCloudJob();
     setAudio(null);
     setAudioPath(undefined);
@@ -678,6 +700,7 @@ export function ConsultationWorkspace({
 
   return (
     <div className="min-h-screen lg:flex">
+      {confirmation}
       <a
         href="#workspace"
         className="absolute -top-20 left-4 z-50 rounded-lg bg-white px-4 py-3 font-semibold shadow-lg focus:top-4"
@@ -728,13 +751,17 @@ export function ConsultationWorkspace({
           <ProfileMenu
             profile={doctor}
             disabled={busy}
-            onBeforeNavigate={() => {
+            onBeforeNavigate={async () => {
               if (
                 busy ||
                 (dirty &&
-                  !window.confirm(
-                    "Leave this consultation? Unsaved changes will be discarded.",
-                  ))
+                  !(await confirm({
+                    title: "Leave this consultation?",
+                    message: "Your unsaved changes will be lost.",
+                    confirmLabel: "Leave consultation",
+                    cancelLabel: "Keep editing",
+                    destructive: true,
+                  })))
               )
                 return false;
               leaving.current = true;

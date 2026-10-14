@@ -7,12 +7,14 @@ import { accountRequest } from "@/lib/account-client";
 import { ProfileAvatar } from "./profile-avatar";
 import { ProfileMenu } from "./profile-menu";
 import { AccountDelete } from "./account-delete";
+import { useConfirmation } from "./use-confirmation";
 
 export function ProfileEditor({
   initialProfile,
 }: {
   initialProfile: DoctorProfile;
 }) {
+  const { confirm, confirmation } = useConfirmation();
   const [profile, setProfile] = useState(initialProfile);
   const [fields, setFields] = useState({
     fullName: initialProfile.fullName,
@@ -43,19 +45,23 @@ export function ProfileEditor({
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
   }, [dirty]);
-  function allowLeave() {
+  async function allowLeave() {
     if (
       busy ||
       (dirty &&
-        !window.confirm(
-          "Leave your profile? Unsaved changes will be discarded.",
-        ))
+        !(await confirm({
+          title: "Leave your profile?",
+          message: "Your unsaved profile changes will be lost.",
+          confirmLabel: "Leave profile",
+          cancelLabel: "Keep editing",
+          destructive: true,
+        })))
     )
       return false;
     leaving.current = true;
     return true;
   }
-  function navigate(event: MouseEvent<HTMLAnchorElement>) {
+  async function navigate(event: MouseEvent<HTMLAnchorElement>) {
     if (
       event.ctrlKey ||
       event.metaKey ||
@@ -64,7 +70,9 @@ export function ProfileEditor({
       event.button !== 0
     )
       return;
-    if (!allowLeave()) event.preventDefault();
+    event.preventDefault();
+    const href = event.currentTarget.href;
+    if (await allowLeave()) window.location.assign(href);
   }
   async function changeProfile(
     kind: "profile" | "photo" | "removePhoto",
@@ -130,6 +138,7 @@ export function ProfileEditor({
   }
   return (
     <div className="min-h-screen">
+      {confirmation}
       <header className="flex h-16 items-center justify-between border-b border-slate-200 bg-white px-5 sm:px-8">
         <a
           href="/"

@@ -81,8 +81,11 @@ for (const field of ["History note 1", "Transcript segment 1"]) {
       ).toBeDisabled();
       await expect(editor).toHaveValue("Pending wording still being edited.");
       if (field.startsWith("Transcript")) {
-        page.once("dialog", (dialog) => dialog.accept());
         await editor.blur();
+        await page
+          .getByRole("dialog")
+          .getByRole("button", { name: "Update conversation", exact: true })
+          .click();
         await editor.fill("Updated wording before hiding the conversation.");
         await page
           .getByRole("button", { name: "Hide conversation", exact: true })
@@ -153,11 +156,14 @@ test("generates editable evidence-linked notes and confirms before invalidating 
   await expect(
     page.getByLabel("Transcript segment 2", { exact: true }),
   ).toBeFocused();
-  page.once("dialog", (dialog) => dialog.dismiss());
   await page
     .getByLabel("Transcript segment 2", { exact: true })
     .fill("Changed text.");
   await page.getByLabel("Transcript segment 1", { exact: true }).focus();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Keep notes", exact: true })
+    .click();
   await expect(
     page.getByLabel("Transcript segment 2", { exact: true }),
   ).toHaveValue(transcript.segments[1].text);
@@ -170,10 +176,13 @@ test("generates editable evidence-linked notes and confirms before invalidating 
   ).toBeVisible();
   await page.getByRole("button", { name: "Conversation", exact: true }).click();
   await page.getByText("Correct speaker labels", { exact: true }).click();
-  page.once("dialog", (dialog) => dialog.accept());
   await page
     .getByLabel("Speaker 1 role", { exact: true })
     .selectOption("unknown");
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Update conversation", exact: true })
+    .click();
   await expect(page.getByLabel("History note 1", { exact: true })).toHaveCount(
     0,
   );
@@ -318,8 +327,11 @@ test("keeps notes and the draft after failed regeneration or saving", async ({
       },
     }),
   );
-  page.once("dialog", (dialog) => dialog.accept());
   await page
+    .getByRole("button", { name: "Regenerate notes", exact: true })
+    .click();
+  await page
+    .getByRole("dialog")
     .getByRole("button", { name: "Regenerate notes", exact: true })
     .click();
   await expect(
@@ -386,8 +398,11 @@ test("ignores cancelled regeneration and retains the reviewed transcript and not
       handled();
     }
   });
-  page.once("dialog", (dialog) => dialog.accept());
   await page
+    .getByRole("button", { name: "Regenerate notes", exact: true })
+    .click();
+  await page
+    .getByRole("dialog")
     .getByRole("button", { name: "Regenerate notes", exact: true })
     .click();
   await expect(
@@ -464,7 +479,6 @@ test("cannot replace the draft while a save response is pending", async ({
     replacements++;
     return route.continue();
   });
-  page.on("dialog", (dialog) => dialog.accept());
   try {
     await page
       .getByRole("button", { name: "Save consultation", exact: true })

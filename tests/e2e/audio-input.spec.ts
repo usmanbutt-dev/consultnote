@@ -130,7 +130,7 @@ test("records actual MediaRecorder WebM and releases microphone tracks", async (
     .poll(() =>
       page
         .getByRole("meter", { name: "Microphone input level" })
-        .evaluate((meter: HTMLMeterElement) => meter.value),
+        .evaluate((meter) => Number(meter.getAttribute("aria-valuenow"))),
     )
     .toBeGreaterThan(0);
   await page
@@ -169,6 +169,60 @@ test("denied microphone leaves file upload available", async ({ page }) => {
     .click();
   await page.getByLabel("Audio file", { exact: true }).setInputFiles(fixture);
   await expect(page.getByText("Audio ready", { exact: true })).toBeVisible();
+});
+
+test("discard recording uses a custom dialog and releases tracks only when confirmed", async ({
+  page,
+  context,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await context.grantPermissions(["microphone"]);
+  await page.addInitScript(() => {
+    const getUserMedia = navigator.mediaDevices.getUserMedia.bind(
+      navigator.mediaDevices,
+    );
+    navigator.mediaDevices.getUserMedia = async (constraints) => {
+      const stream = await getUserMedia(constraints);
+      (window as unknown as { audioStream: MediaStream }).audioStream = stream;
+      return stream;
+    };
+  });
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "Start recording", exact: true })
+    .click();
+  await expect(page.getByText("Recording", { exact: true })).toBeVisible();
+  await page.screenshot({
+    path: test.info().outputPath("recording-mobile.png"),
+  });
+  await page.getByRole("button", { name: "Discard", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Discard recording?" });
+  await expect(dialog).toBeVisible();
+  await dialog
+    .getByRole("button", { name: "Keep recording", exact: true })
+    .click();
+  expect(
+    await page.evaluate(() =>
+      (window as unknown as { audioStream: MediaStream }).audioStream
+        .getTracks()
+        .every((track) => track.readyState === "live"),
+    ),
+  ).toBe(true);
+  await page.getByRole("button", { name: "Discard", exact: true }).click();
+  await dialog
+    .getByRole("button", { name: "Discard recording", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Start recording", exact: true }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(() =>
+      (window as unknown as { audioStream: MediaStream }).audioStream
+        .getTracks()
+        .every((track) => track.readyState === "ended"),
+    ),
+  ).toBe(true);
+  await expect(page.getByLabel("Audio playback")).toHaveCount(0);
 });
 
 test("unsupported recording leaves file upload available", async ({ page }) => {

@@ -83,7 +83,6 @@ test("starts a fresh consultation after reviewing a sample", async ({
   await expect(
     page.getByLabel("History note 1", { exact: true }),
   ).toBeVisible();
-  page.once("dialog", (dialog) => dialog.accept());
   await page
     .getByRole("button", { name: "New consultation", exact: true })
     .click();

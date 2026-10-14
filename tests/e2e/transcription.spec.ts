@@ -93,14 +93,20 @@ test("shows named speakers and suggests a title without overwriting a custom tit
     .fill("General consultation.");
   await page.getByLabel("Transcript segment 1", { exact: true }).focus();
   await expect(title).toHaveValue(/^Patient – Consultation –/);
-  page.once("dialog", (dialog) => dialog.accept());
   await page
+    .getByRole("button", { name: "Transcribe again", exact: true })
+    .click();
+  await page
+    .getByRole("dialog")
     .getByRole("button", { name: "Transcribe again", exact: true })
     .click();
   await expect(title).toHaveValue(/^Mr\. Jones – Back pain –/);
   await title.fill("My reviewed consultation");
-  page.once("dialog", (dialog) => dialog.accept());
   await page
+    .getByRole("button", { name: "Transcribe again", exact: true })
+    .click();
+  await page
+    .getByRole("dialog")
     .getByRole("button", { name: "Transcribe again", exact: true })
     .click();
   await expect(
@@ -258,31 +264,46 @@ test("confirms before replacing a reviewed draft or removing its audio", async (
   await page
     .getByLabel("Speaker 1 role", { exact: true })
     .selectOption("unknown");
-  page.once("dialog", (dialog) => dialog.dismiss());
   await page
     .getByRole("button", { name: "New consultation", exact: true })
     .click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Keep editing", exact: true })
+    .click();
   await expect(segment).toHaveValue("My reviewed transcript.");
-  page.once("dialog", (dialog) => dialog.dismiss());
   await page.getByRole("button", { name: "Remove audio", exact: true }).click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Keep editing", exact: true })
+    .click();
   await expect(segment).toHaveValue("My reviewed transcript.");
   await expect(page.getByLabel("Audio playback")).toBeVisible();
-  page.once("dialog", (dialog) => dialog.dismiss());
   await page.getByLabel("Audio file", { exact: true }).setInputFiles(audio);
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Keep editing", exact: true })
+    .click();
   await expect(segment).toHaveValue("My reviewed transcript.");
-  page.once("dialog", (dialog) => dialog.accept());
   await page.getByLabel("Audio file", { exact: true }).setInputFiles({
     name: "invalid.wav",
     mimeType: "audio/wav",
     buffer: Buffer.from("not audio"),
   });
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Discard changes", exact: true })
+    .click();
   await expect(
     page.getByRole("region", { name: "Audio recording" }).getByRole("alert"),
   ).toContainText("MP3, WAV, WebM or OGG");
   await expect(segment).toHaveValue("My reviewed transcript.");
-  page.once("dialog", (dialog) => dialog.accept());
   await page
     .getByRole("button", { name: "New consultation", exact: true })
+    .click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Discard changes", exact: true })
     .click();
   await expect(segment).toHaveCount(0);
 });
@@ -317,8 +338,11 @@ test("keeps prior edits after a failed retranscription and restores invalid empt
   await page
     .getByLabel("Speaker 1 role", { exact: true })
     .selectOption("unknown");
-  page.once("dialog", (dialog) => dialog.accept());
   await page
+    .getByRole("button", { name: "Transcribe again", exact: true })
+    .click();
+  await page
+    .getByRole("dialog")
     .getByRole("button", { name: "Transcribe again", exact: true })
     .click();
   await expect(
@@ -435,9 +459,12 @@ test("retrying a failed audio replacement confirms before discarding later trans
     .getByLabel("Speaker 1 role", { exact: true })
     .selectOption("unknown");
   const preview = await page.getByLabel("Audio playback").getAttribute("src");
-  page.once("dialog", (dialog) => dialog.dismiss());
   await page
     .getByRole("button", { name: "Retry audio check", exact: true })
+    .click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Keep editing", exact: true })
     .click();
   await expect(segment).toHaveValue("Reviewed after the failed replacement.");
   await expect(page.getByLabel("Speaker 1 role", { exact: true })).toHaveValue(
@@ -448,9 +475,12 @@ test("retrying a failed audio replacement confirms before discarding later trans
     preview!,
   );
   expect(validations).toBe(1);
-  page.once("dialog", (dialog) => dialog.accept());
   await page
     .getByRole("button", { name: "Retry audio check", exact: true })
+    .click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Discard changes", exact: true })
     .click();
   await expect(page.getByText("tone.mp3", { exact: true })).toBeVisible();
   await expect(segment).toHaveCount(0);

@@ -1,5 +1,15 @@
 # Implementation decisions and tradeoffs
 
+## Minimal history, recording and custom confirmations — 2026-10-14
+
+History uses quiet rows with a teal highlight for the open consultation. Recording gives elapsed time priority, with a compact teal meter driven by actual microphone input, a separate limit label and adjacent Stop/Discard actions. Discard keeps the microphone running until confirmed; operation checks prevent an outdated confirmation from discarding audio after automatic recording completion.
+
+One dependency-free confirmation hook uses the native HTML dialog element for modal focus, inert background content and keyboard handling, with site-matching typography, buttons and backdrop. Cancel receives initial focus; Escape cancels. Transcript/role edits, replacement, regeneration, deletion and account departures await confirmation before mutating state. Concurrent confirmation requests are rejected, and unmount cancels a pending request. Inline error messages remain inline. Failed sign-out restores draft protection and reopens the account menu to expose the error, because opening a modal closes native popovers.
+
+Document navigation and the existing one-shot unload suppression remain. Browser refresh/close/history warnings cannot be styled by a website and intentionally stay native. Account deletion retains its explicit password and typed DELETE form.
+
+All 55 isolated production browser checks passed, including cancellation, Escape, background focus isolation, transcript/role invalidation, confirmed deletion, account navigation, failed sign-out, microphone cleanup and persistence across a server restart. Desktop/mobile recording and dialogs were visually inspected. No live AI calls were made.
+
 ## Compact account forms and simpler start — 2026-10-14
 
 Login, signup, recovery and password-change screens share a narrower card, tighter spacing and 44px inputs. An auth-specific 2px focus outline overlays the field border, with a subtle halo, avoiding the separated outer outline while preserving keyboard focus visibility. Login's secondary actions share one row.

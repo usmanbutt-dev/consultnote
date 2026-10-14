@@ -29,8 +29,8 @@ export function TranscriptReview({
   transcript: Transcript;
   assignments: SpeakerAssignment[];
   disabled?: boolean;
-  onTranscriptChange: (transcript: Transcript) => boolean | void;
-  onAssignmentsChange: (assignments: SpeakerAssignment[]) => void;
+  onTranscriptChange: (transcript: Transcript) => Promise<boolean>;
+  onAssignmentsChange: (assignments: SpeakerAssignment[]) => Promise<void>;
   onPendingEdit?: () => void;
 }) {
   const [error, setError] = useState("");
@@ -147,7 +147,8 @@ export function TranscriptReview({
                 disabled={disabled}
                 dir="auto"
                 onInput={onPendingEdit}
-                onBlur={(event) => {
+                onBlur={async (event) => {
+                  const input = event.currentTarget;
                   const text = event.currentTarget.value.trim();
                   const next = transcriptSchema.safeParse({
                     ...transcript,
@@ -179,8 +180,8 @@ export function TranscriptReview({
                     return;
                   }
                   setError("");
-                  if (onTranscriptChange(next.data) === false)
-                    event.currentTarget.value = segment.text;
+                  if (!(await onTranscriptChange(next.data)))
+                    input.value = segment.text;
                 }}
               />
             </li>

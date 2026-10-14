@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { FileAudio, Mic, Square, UploadCloud, X } from "lucide-react";
 import { uploadCloudAudio, removeCloudAudio } from "@/lib/cloud-client";
+import { useConfirmation } from "./use-confirmation";
 
 const MAX_BYTES = 10 * 1024 * 1024;
 const MAX_SECONDS = 600;
@@ -59,11 +60,12 @@ export function AudioInput({
 }: {
   onAudioReady: (file: File, path?: string) => void;
   onReset: () => void;
-  onBeforeReplace?: () => boolean;
+  onBeforeReplace?: () => Promise<boolean>;
   onBusyChange?: (busy: boolean) => void;
   cloud?: boolean;
   disabled?: boolean;
 }) {
+  const { confirm, confirmation } = useConfirmation();
   const [phase, setPhase] = useState<
     "idle" | "starting" | "recording" | "validating"
   >("idle");
@@ -104,8 +106,25 @@ export function AudioInput({
     setElapsed(0);
   }
 
-  function reset() {
-    if (onBeforeReplace && !onBeforeReplace()) return;
+  async function discardRecording() {
+    const operation = resources.current.operation;
+    if (
+      (await confirm({
+        title: "Discard recording?",
+        message:
+          "This recording will be removed. You can start again whenever you are ready.",
+        confirmLabel: "Discard recording",
+        cancelLabel: "Keep recording",
+        destructive: true,
+      })) &&
+      operation === resources.current.operation &&
+      resources.current.recorder?.state === "recording"
+    )
+      cancel();
+  }
+
+  async function reset() {
+    if (onBeforeReplace && !(await onBeforeReplace())) return;
     cancel();
     const current = resources.current;
     if (current.url) URL.revokeObjectURL(current.url);
@@ -207,7 +226,7 @@ export function AudioInput({
       );
       return;
     }
-    if (onBeforeReplace && !onBeforeReplace()) return;
+    if (onBeforeReplace && !(await onBeforeReplace())) return;
     setReplacing(false);
     const current = resources.current;
     const operation = ++current.operation;
@@ -308,16 +327,17 @@ export function AudioInput({
         tabIndex={-1}
         accept=".mp3,.wav,.webm,.ogg,audio/mpeg,audio/wav,audio/webm,audio/ogg"
         disabled={busy || disabled}
-        onChange={(event) => {
+        onChange={async (event) => {
           const file = event.currentTarget.files?.[0];
           event.currentTarget.value = "";
-          if (file && (!onBeforeReplace || onBeforeReplace()))
+          if (file && (!onBeforeReplace || (await onBeforeReplace())))
             void validate(file);
         }}
       />
       <h2 id="capture-heading" className="sr-only">
         Audio recording
       </h2>
+      {confirmation}
       {busy ? (
         <div className="animate-enter flex flex-col items-center gap-4 px-5 py-8 text-center">
           <Mic
@@ -337,36 +357,46 @@ export function AudioInput({
                 : "Checking audio…"}
           </h3>
           {phase === "recording" && (
-            <div className="w-44">
+            <div className="w-48">
               <p
                 aria-label="Recording duration"
-                className="font-mono text-base"
+                className="font-mono text-4xl font-medium tracking-tight tabular-nums"
               >
-                {formatTime(elapsed)} / 10:00
+                {formatTime(elapsed)}
               </p>
-              <meter
+              <p className="mt-2 text-sm text-slate-600">10 minute limit</p>
+              <div
+                role="meter"
                 aria-label="Microphone input level"
-                min={0}
-                max={1}
-                value={level}
-                className="mt-3 h-3 w-full"
-              />
+                aria-valuemin={0}
+                aria-valuemax={1}
+                aria-valuenow={Number(level.toFixed(2))}
+                className="mt-5 h-1.5 overflow-hidden rounded-full bg-slate-100"
+              >
+                <div
+                  className="h-full origin-left rounded-full bg-teal-600 transition-transform duration-100"
+                  style={{ transform: `scaleX(${level})` }}
+                />
+              </div>
             </div>
           )}
-          {phase === "recording" && (
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            {phase === "recording" && (
+              <button
+                onClick={stopRecording}
+                className="flex min-h-11 items-center gap-2 rounded-lg bg-red-700 px-5 font-semibold text-white"
+              >
+                <Square aria-hidden="true" size={14} fill="currentColor" /> Stop
+                recording
+              </button>
+            )}
             <button
-              onClick={stopRecording}
-              className="flex min-h-11 items-center gap-2 rounded-lg bg-red-700 px-5 font-semibold text-white"
+              onClick={phase === "recording" ? discardRecording : cancel}
+              className="min-h-11 rounded-lg px-4 text-sm font-semibold text-slate-600 hover:bg-slate-50"
             >
-              <Square aria-hidden="true" size={15} /> Stop recording
+              {phase === "recording" ? "Discard" : "Cancel"}
             </button>
-          )}
-          <button
-            onClick={cancel}
-            className="min-h-11 rounded-lg border border-slate-300 px-5 text-sm font-semibold"
-          >
-            Cancel
-          </button>
+          </div>
         </div>
       ) : (
         !ready && (
@@ -407,8 +437,8 @@ export function AudioInput({
             {candidate.name} is kept in this tab. Retry or choose another file.
           </p>
           <button
-            onClick={() => {
-              if (!onBeforeReplace || onBeforeReplace())
+            onClick={async () => {
+              if (!onBeforeReplace || (await onBeforeReplace()))
                 void validate(candidate);
             }}
             disabled={disabled}
