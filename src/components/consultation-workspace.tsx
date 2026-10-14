@@ -8,6 +8,8 @@ import {
   Plus,
   Save,
   LoaderCircle,
+  FolderOpen,
+  ChevronDown,
 } from "lucide-react";
 import { AudioInput } from "./audio-input";
 import { TranscriptReview } from "./transcript-review";
@@ -780,25 +782,44 @@ export function ConsultationWorkspace({
             (transcription ? "max-w-7xl" : "max-w-3xl")
           }
         >
-          <details className="mb-6 rounded-lg border border-slate-200 bg-white p-3 lg:hidden">
-            <summary className="min-h-9 text-sm font-semibold">
-              Saved consultations
+          <details className="group mb-7 rounded-2xl border border-teal-200 bg-white shadow-sm lg:hidden">
+            <summary className="flex min-h-20 list-none items-center gap-3 rounded-2xl bg-teal-50 px-4 py-4 text-left transition-colors hover:bg-teal-100 group-open:rounded-b-none [&::-webkit-details-marker]:hidden">
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-teal-100 text-teal-800">
+                <FolderOpen aria-hidden="true" size={23} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-base font-semibold text-slate-900">
+                  Saved consultations
+                </span>
+                <span className="mt-0.5 block text-sm text-slate-600">
+                  {history.length
+                    ? `${history.length} saved ${history.length === 1 ? "consultation" : "consultations"}`
+                    : "Your saved notes appear here"}
+                </span>
+              </span>
+              <ChevronDown
+                aria-hidden="true"
+                size={22}
+                className="shrink-0 text-teal-800 transition-transform duration-200 group-open:rotate-180"
+              />
             </summary>
-            <ConsultationHistory
-              items={history}
-              activeId={savedRecord?.id}
-              busy={busy}
-              emptyLabel="No saved consultations"
-              onOpen={(id) => void openConsultation(id)}
-              onDelete={(id) => void removeConsultation(id)}
-            />
-            <button
-              onClick={newConsultation}
-              disabled={saving}
-              className="mt-3 min-h-11 rounded-lg border border-slate-300 px-3 text-sm font-semibold"
-            >
-              New consultation
-            </button>
+            <div className="border-t border-teal-100 p-4">
+              <ConsultationHistory
+                items={history}
+                activeId={savedRecord?.id}
+                busy={busy}
+                emptyLabel="No saved consultations"
+                onOpen={(id) => void openConsultation(id)}
+                onDelete={(id) => void removeConsultation(id)}
+              />
+              <button
+                onClick={newConsultation}
+                disabled={saving}
+                className="mt-3 min-h-11 rounded-lg border border-slate-300 px-3 text-sm font-semibold"
+              >
+                New consultation
+              </button>
+            </div>
           </details>
           <div className="mb-7 flex flex-wrap items-start justify-between gap-4">
             <div>
