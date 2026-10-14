@@ -1,6 +1,6 @@
 # Supabase and Vercel setup
 
-The live demo is [consultnote.vercel.app](https://consultnote.vercel.app), deployed to Vercel Hobby from the private [GitHub repository](https://github.com/usmanbutt-dev/consultnote). Supabase project `ddufzrnfobkawrfvdkec` (`consultnote`, Mumbai) is in the user's confirmed Free organization; both migrations are applied. The sections below describe reproducible setup and verification. Existing local drafts stay in SQLite and are not automatically uploaded.
+The live demo is [consultnote.vercel.app](https://consultnote.vercel.app), deployed to Vercel Hobby from the private [GitHub repository](https://github.com/usmanbutt-dev/consultnote). Supabase project `ddufzrnfobkawrfvdkec` (`consultnote`, Mumbai) is in the user's confirmed Free organization; all versioned migrations are applied. The sections below describe reproducible setup and verification. Existing local drafts stay in SQLite and are not automatically uploaded.
 
 Signup is immediate by the user's choice for this fictional-data interview demo. Email ownership is not verified. Signed-in password changes are available; public password-reset email delivery remains pending until custom SMTP is configured. Production login and recovery callback URLs are registered alongside the local callbacks in `supabase/config.toml`.
 
@@ -11,7 +11,7 @@ Live checks passed for signup/session, profile/photo CRUD, password changes, sig
 ## 1. Create the free Supabase project
 
 1. Create a project at [Supabase](https://supabase.com/dashboard). Keep the database password private.
-2. Initialize/link the Supabase CLI when proceeding with setup, then apply [the initial schema](../supabase/migrations/20261013000100_initial.sql) and [doctor accounts](../supabase/migrations/20261014000100_doctor_accounts.sql) in timestamp order using `supabase db push`. They create private consultations, profiles, photo/audio Storage, jobs and server-only processing limits. On a project that already ran the former `schema.sql`, reconcile migration history before pushing the initial migration; do not reapply its policies blindly. See [Supabase migrations](https://supabase.com/docs/guides/deployment/database-migrations).
+2. Initialize/link the Supabase CLI when proceeding with setup, then apply every file in [migrations](../supabase/migrations) in timestamp order using `supabase db push`. They create private consultations, profiles, photo/audio Storage, jobs, server-only processing limits and upload quotas. On a project that already ran the former `schema.sql`, reconcile migration history before pushing the initial migration; do not reapply its policies blindly. See [Supabase migrations](https://supabase.com/docs/guides/deployment/database-migrations).
 3. Copy the project URL and publishable key from Connect, and a secret key from Settings → API Keys, into the ignored `.env` or `.env.local`:
 
    ```dotenv
@@ -43,6 +43,8 @@ Supabase's default email sender is restricted: it sends only to project-team add
 
 Processing limits: 10 transcription starts and 20 notes requests per account per database day, plus 100 operations per day across the demo. Only one recent transcription job can run per account. A pending job expires after 15 minutes; polling uses its existing provider ID. These limits bound app usage and do not replace provider rate limits. Groq quota errors are surfaced without automatic regeneration.
 
+Storage limits: at most 5 audio files and 3 photos per account, with project totals of 50 audio files and 100 photos. These apply to direct Storage requests too, including concurrent uploads. Delete unused files to free a slot; at the project cap, an administrator must clear abandoned files through the Storage API or dashboard. Keep bucket versioning disabled. The final-write trigger is a custom change to Supabase's managed Storage schema and needs rechecking after Storage upgrades. These caps bound committed objects; failed uploads can leave temporary bytes awaiting cleanup. See [security review](security-review.md) for verification and limits.
+
 ## 3. Deploy on Vercel Hobby
 
 1. Import your repository into [Vercel](https://vercel.com/new) when you are ready. Choose the `consultnote` project directory and the Next.js preset.
@@ -66,7 +68,7 @@ The approved English MP3 completed transcription with English translation and En
 
 - Cloud setup pending: add both public Supabase variables and restart/redeploy.
 - Cloud processing needs server key: add `SUPABASE_SECRET_KEY` (or the supported legacy name), keeping it private.
-- Database setup error: apply both versioned migrations and confirm `doctor_profiles`, consultations, jobs, usage, Storage policies and RPCs exist.
+- Database setup error: apply all versioned migrations and confirm `doctor_profiles`, consultations, jobs, usage, Storage policies, quotas and RPCs exist.
 - Upload rejected: check the private bucket, policies, file size and supported file format.
 - Sign-in/confirmation failure: check redirects, email confirmation and SMTP setup.
 - Provider quota/busy error: the draft remains available. Resume a pending job instead of creating duplicate transcriptions.

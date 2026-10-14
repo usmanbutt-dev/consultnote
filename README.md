@@ -88,6 +88,7 @@ One Next.js App Router application uses TypeScript, Tailwind, Zod, native browse
 - [Measured AI behavior and limitations](docs/ai-evaluation.md)
 - [Implementation decisions and tradeoffs](docs/implementation-decisions.md)
 - [Supabase and Vercel setup](docs/deployment.md)
+- [Security review and verification](docs/security-review.md)
 - [Clinician/cloud design](docs/superpowers/specs/2026-10-13-clinician-cloud-design.md)
 
 Source IDs are validated; factual accuracy still requires review against audio. Models can misattribute statements, infer unsupported agreement, omit context or swap speakers. This remains a fictional-data interview demonstration. Live account, two-account isolation, cloud saving, PDF download and hosted Linux audio-validation checks passed. A separate hosted check completed the approved five-minute English MP3 through transcription, notes, save and reopen in 29.4 seconds for processing. Actual Urdu/mixed speech quality still needs representative recordings. Password-reset email delivery awaits SMTP setup.
