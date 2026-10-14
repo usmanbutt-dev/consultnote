@@ -31,13 +31,12 @@ test("enforces CSP while keeping the workspace interactive and blocking injected
   const policy = headers["content-security-policy"];
   expect(policy).toContain("'strict-dynamic'");
   const nonce = policy.match(/'nonce-([^']+)'/)![1];
-  const scripts = await page
-    .locator("script:not(#injected-test-script)")
-    .evaluateAll((elements) =>
-      elements.map((element) => (element as HTMLScriptElement).nonce),
-    );
+  // Development tooling can append trusted scripts after the document loads.
+  const scripts = [...(await response!.text()).matchAll(/<script\b[^>]*>/g)]
+    .map(([tag]) => tag)
+    .filter((tag) => !tag.includes("injected-test-script"));
   expect(scripts.length).toBeGreaterThan(0);
-  expect(scripts.every((value) => value === nonce)).toBe(true);
+  expect(scripts.every((tag) => tag.includes(`nonce="${nonce}"`))).toBe(true);
   await expect(
     page.getByRole("button", { name: "Start recording", exact: true }),
   ).toBeEnabled();

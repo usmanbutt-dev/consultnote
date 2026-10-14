@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+// Browser validation must work without CSP-blocked code generation.
+z.config({ jitless: true });
+
 const nonemptyText = z.string().trim().min(1);
 export const speakerRoleSchema = z.enum(["doctor", "patient", "unknown"]);
 

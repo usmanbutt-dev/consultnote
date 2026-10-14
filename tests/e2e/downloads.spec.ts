@@ -5,6 +5,20 @@ test("offers a named PDF and text download after saving reviewed notes", async (
   page,
   request,
 }) => {
+  const violations: { directive: string; blocked: string; source: string }[] =
+    [];
+  page.on("console", (message) => {
+    const prefix = "PDF CSP: ";
+    if (message.text().startsWith(prefix))
+      violations.push(JSON.parse(message.text().slice(prefix.length)));
+  });
+  await page.addInitScript(() => {
+    window.addEventListener("securitypolicyviolation", (event) => {
+      console.info(
+        `PDF CSP: ${JSON.stringify({ directive: event.violatedDirective, blocked: event.blockedURI, source: event.sourceFile })}`,
+      );
+    });
+  });
   const sample = await (await request.get("/api/sample")).json();
   const title = "Mr. Jones – Back pain – 14 Oct 2026";
   const created = await request.post("/api/consultations", {
@@ -48,6 +62,7 @@ test("offers a named PDF and text download after saving reviewed notes", async (
     await page
       .getByRole("button", { name: "Download notes", exact: true })
       .click();
+    expect(violations).toEqual([]);
     const pdfReady = page.waitForEvent("download");
     await page
       .getByRole("button", { name: "PDF document (.pdf)", exact: true })
@@ -58,6 +73,14 @@ test("offers a named PDF and text download after saving reviewed notes", async (
     for await (const chunk of (await pdf.createReadStream())!)
       bytes = Buffer.concat([bytes, chunk]);
     expect(bytes.subarray(0, 5).toString()).toBe("%PDF-");
+    // PDF dependencies catch blocked optional constructor probes; generation
+    // must still work without weakening the production script policy.
+    expect(
+      violations.every(
+        ({ directive, blocked }) =>
+          directive === "script-src" && blocked === "eval",
+      ),
+    ).toBe(true);
     const loading = getDocument({
       data: new Uint8Array(bytes),
       useSystemFonts: true,

@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { ApiError } from "./http";
 
+z.config({ jitless: true });
+
 export const profileInputSchema = z.strictObject({
   fullName: z.string().trim().min(1).max(80),
   specialty: z.string().trim().max(80),
